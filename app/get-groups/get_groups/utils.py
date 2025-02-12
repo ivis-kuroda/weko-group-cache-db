@@ -11,7 +11,7 @@ def set_groups(fqdn):
         fqdn(str): fqdn of the target sp
     """
     # replace special characters
-    fqdn = fqdn.replace(',', '_').replace('-', '_')
+    fqdn = fqdn.replace('.', '_').replace('-', '_')
 
     # get group_id_list from gakunin
     groups = get_groups_from_gakunin(fqdn)
