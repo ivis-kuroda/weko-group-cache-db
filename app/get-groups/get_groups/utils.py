@@ -10,15 +10,15 @@ def set_groups(fqdn):
     Arguments:
         fqdn(str): fqdn of the target sp
     """
-    # replace special characters
-    fqdn = fqdn.replace('.', '_').replace('-', '_')
-
     # get group_id_list from gakunin
     groups = get_groups_from_gakunin(fqdn)
     group_id_list = []
     for group in groups:
         group_id = group['id'].split('\/')[-1]
         group_id_list.append(group_id)
+
+    # replace special characters
+    fqdn = fqdn.replace('.', '_').replace('-', '_')
 
     # set groups to redis
     set_groups_to_redis(fqdn, group_id_list)
