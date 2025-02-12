@@ -14,6 +14,7 @@ cp -pf nginx/uwsgi.conf /etc/nginx/conf.d/
 mkdir -p /etc/nginx/cert
 cp -pf nginx/keys/server.crt /etc/nginx/cert/
 cp -pf nginx/keys/server.key /etc/nginx/cert/
+cp -pf nginx/keys/client.crt /etc/nginx/cert/
 nginx -s reload
 systemctl restart nginx
 
