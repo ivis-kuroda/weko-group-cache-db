@@ -30,7 +30,8 @@ def set_group_id(group_id):
                     # Register the group ID that does not exist in the Redis
                     store.rpush(redis_key, group_id)
             else:
-                fqdn_list = [info['org_sp_fqdn'] for info in config.SP_AUTHORIZATION_DICT.values()]
+                fqdn_list = [info['org_sp_fqdn'].replace('.', '_').replace('-', '_')
+                             for info in config.SP_AUTHORIZATION_DICT.values()]
                 if fqdn in fqdn_list:
                     # Register the group ID that fqdn is in the SP_AUTHORIZATION_DICT
                     store.rpush(redis_key, group_id)
