@@ -25,6 +25,7 @@ class RedisConnection:
         Returns:
             redis.Redis: Redis store object
         """
+        store = None
         try:
             if self.redis_type == 'redis':
                 store = self.redis_connection(db)
