@@ -1,5 +1,6 @@
-import requests
 import os
+import requests
+from urllib.parse import urljoin
 
 from config import config, messages
 from jc_redis.redis import RedisConnection
@@ -45,7 +46,7 @@ def get_groups_from_gakunin(fqdn):
         raise Exception(messages.TLS_CLIENT_CERT_NOT_FOUND.format(fqdn))
     if not os.path.exists(target_sp['tls_client_cert']):
         raise Exception(messages.TLS_CLIENT_CERT_FILE_NOT_FOUND.format(target_sp['tls_client_cert']))
-    target_url = config.GROUPS_API_URL + target_sp['sp_connector_id']
+    target_url = urljoin(config.GROUPS_API_URL, target_sp['sp_connector_id'])
     # get groups what connected to the target sp
     response = requests.get(target_url, cert=target_sp['tls_client_cert'])
     response.raise_for_status()
