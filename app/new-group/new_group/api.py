@@ -1,12 +1,11 @@
 from flask import Blueprint, current_app, jsonify
+
 from .utils import set_group_id
 
 blueprint = Blueprint(
     'new_group',
     __name__,
-    url_prefix='/new-group',
-    template_folder='templates',
-    static_folder='static'
+    url_prefix='/new-group'
 )
 
 @blueprint.route('/<string:group_id>')
