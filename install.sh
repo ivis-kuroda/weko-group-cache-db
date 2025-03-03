@@ -1,5 +1,6 @@
 #!/bin/bash
 CURRENT=$(pwd)
+pip install -r packages.txt
 pip install virtualenvwrapper
 pip install -e app/config
 pip install -e app/get-groups
