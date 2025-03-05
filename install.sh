@@ -22,6 +22,10 @@ systemctl restart nginx
 # setup supervisord
 pip install supervisor
 cp -pf supervisord.conf /etc/
+cp -pf supervisord.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable supervisord
+systemctl start supervisord
 supervisorctl reread
 supervisorctl update
 systemctl restart supervisord
