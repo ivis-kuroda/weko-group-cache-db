@@ -17,6 +17,7 @@ cp -pf nginx/keys/server.crt /etc/nginx/cert/
 cp -pf nginx/keys/server.key /etc/nginx/cert/
 cp -pf nginx/keys/client.crt /etc/nginx/cert/
 nginx -s reload
+systemctl enable nginx
 systemctl restart nginx
 
 # setup supervisord
@@ -29,13 +30,6 @@ systemctl start supervisord
 supervisorctl reread
 supervisorctl update
 systemctl restart supervisord
-
-# setup shibboleth
-wget 'https://shibboleth.net/cgi-bin/sp_repo.cgi?platform=amazonlinux2023'
-cp -pf sp_repo.cgi\?platform=* /etc/yum.repos.d/shibboleth.repo
-yum install shibboleth -y
-systemctl restart shibd
-systemctl enable shibd
 
 source "$(which virtualenvwrapper.sh)"
 mkvirtualenv jc

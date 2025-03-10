@@ -33,6 +33,7 @@ def get_groups_from_gakunin(fqdn):
     Returns:
         list: list of groups
     """
+    target_sp = None
     # get sp connection details
     for value in config.SP_AUTHORIZATION_DICT.values():
         if value['org_sp_fqdn'] == fqdn:
