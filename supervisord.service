@@ -1,7 +1,0 @@
-[Unit]
-Description=Process Control System
-After=rc-local.service nss-user-lookup.target
-
-[Service]
-Type=forking
-ExecStart=/usr/local/bin/supervisord -c /etc/supervisord.conf
