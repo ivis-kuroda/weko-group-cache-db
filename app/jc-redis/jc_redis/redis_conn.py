@@ -1,6 +1,7 @@
 import redis
-from redis import sentinel
 from config import config
+from redis import sentinel
+
 
 class RedisConnection:
     """Redis connection class

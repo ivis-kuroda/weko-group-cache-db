@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
+
 from config import config
 
 app = Celery('set_groups_celery',

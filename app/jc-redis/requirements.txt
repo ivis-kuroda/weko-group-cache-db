@@ -1,7 +1,6 @@
 celery
 click
+redis
 requests
 -e ../config
 -e ../jc-redis
--e ../get-groups
-redis

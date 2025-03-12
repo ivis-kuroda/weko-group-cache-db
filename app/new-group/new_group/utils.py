@@ -1,7 +1,7 @@
 from flask import current_app
 
 from config import config, messages
-from jc_redis.redis import RedisConnection
+from jc_redis.redis_conn import RedisConnection
 
 def set_group_id(group_id):
     """Set group id to Redis
@@ -29,15 +29,17 @@ def set_group_id(group_id):
                 if group_id not in str_groups:
                     # Register the group ID that does not exist in the Redis
                     store.rpush(redis_key, group_id)
+                current_app.logger.info(messages.GROUP_ID_SET.format(group_id))
+                return
             else:
                 fqdn_list = [info['org_sp_fqdn'].replace('.', '_').replace('-', '_')
                              for info in config.SP_AUTHORIZATION_DICT.values()]
                 if fqdn in fqdn_list:
                     # Register the group ID that fqdn is in the SP_AUTHORIZATION_DICT
                     store.rpush(redis_key, group_id)
-            current_app.logger.info(messages.GROUP_ID_SET.format(group_id))
-        else:
-            # Not register the group ID that does not follow the format
-            current_app.logger.info(messages.GROUP_ID_NOT_SET.format(group_id))
+                    current_app.logger.info(messages.GROUP_ID_SET.format(group_id))
+                    return
+        # Not register the group ID that does not follow the format
+        current_app.logger.info(messages.GROUP_ID_NOT_SET.format(group_id))
     except Exception as ex:
         raise ex

@@ -1,9 +1,10 @@
 import os
-import requests
 from urllib.parse import urljoin
 
+import requests
+
 from config import config, messages
-from jc_redis.redis import RedisConnection
+from jc_redis.redis_conn import RedisConnection
 
 def set_groups(fqdn):
     """Get groups from Gakunin API and set to Redis
