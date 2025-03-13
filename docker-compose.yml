@@ -30,7 +30,8 @@ services:
       - type: bind
         source: .
         target: /code
-    deploy:
-      resources:
-        limits:
-          memory: 100m
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    links:
+      - redis

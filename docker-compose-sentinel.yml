@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.2"
 
 services:
   redis-master:
@@ -6,7 +6,7 @@ services:
     container_name: redis-master
     hostname: redis-master
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - ./data/master:/data
     command:
@@ -35,7 +35,7 @@ services:
     depends_on:
       - redis-master
     ports:
-      - "6380:6379"
+      - "6381:6379"
     volumes:
       - ./data/slave1:/data
     command:
@@ -67,7 +67,7 @@ services:
     depends_on:
       - redis-master
     ports:
-      - "6381:6379"
+      - "6382:6379"
     volumes:
       - ./data/slave2:/data
     command:
