@@ -1,5 +1,6 @@
+from logging import FileHandler, Formatter, getLogger
+
 import click
-from logging import getLogger, FileHandler, Formatter
 
 from config import config, messages
 from .utils import set_groups

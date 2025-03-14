@@ -3,16 +3,16 @@ from logging import INFO
 
 import pytest
 from _pytest.logging import LogCaptureFixture
-from click.testing import CliRunner
+from flask import Flask
+
+from config.config import GROUPS_DB
+from jc_redis.redis_conn import RedisConnection
 
 @pytest.fixture
-def runner():
-    """Fixture for invoking command-line interfaces.
-    
-    Returns:
-        CliRunner: A CliRunner instance.
-    """
-    return CliRunner()
+def app():
+    app = Flask(__name__)
+    with app.app_context():
+        yield app
 
 @pytest.fixture
 def test_logger(caplog: LogCaptureFixture):
@@ -29,11 +29,6 @@ def test_logger(caplog: LogCaptureFixture):
 
 @pytest.fixture
 def prepare_authorization_dict():
-    """Fixture for preparing a dictionary of authorization information.
-    
-    Returns:
-        dict: A dictionary of authorization information.
-    """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     function_dir = current_dir.split('app')[0]
     key_file = os.path.join(function_dir, 'nginx/keys/server.crt')
@@ -41,16 +36,13 @@ def prepare_authorization_dict():
         'Organization Name': {
             'sp_connector_id': 'connector1',
             'tls_client_cert': key_file,
-            'org_sp_fqdn': 'org.sp.co.jp'
-        },
-        'Organization Name2': {
-            'sp_connector_id': 'connector2',
-            'tls_client_cert': key_file,
-            'org_sp_fqdn': 'org.sp2.co.jp'
-        },
-        'Organization Name3': {
-            'sp_connector_id': 'connector3',
-            'tls_client_cert': key_file,
-            'org_sp_fqdn': 'org.sp3.co.jp'
+            'org_sp_fqdn': 'test.org'
         }
     }
+
+@pytest.fixture
+def prepare_redis_connection():
+    store = RedisConnection().connection(GROUPS_DB)
+    store.flushdb()
+    yield store
+    store.flushdb()

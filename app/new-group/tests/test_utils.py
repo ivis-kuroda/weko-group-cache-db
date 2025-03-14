@@ -1,389 +1,506 @@
-from new_group.utils import set_group_id
-from _pytest.logging import LogCaptureFixture
-from jc_redis.redis import RedisConnection
-from unittest.mock import patch
-from config.config import GROUPS_DB, GAKUNIN_GROUP_SUFFIX
-from flask import Flask
-import pytest
-import logging
-from logging import INFO
 import subprocess
-import redis
+from logging import INFO
+from unittest.mock import patch
 
-app = Flask(__name__)
+import pytest
+from redis import ConnectionError
 
-def test_03_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("jc_test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        assert str_groups == ["GakuNinTF", "jc_test_org_groups_example"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups_example) is set to Redis.') in info_logs
+from config.config import GAKUNIN_GROUP_SUFFIX
+from new_group.utils import set_group_id
 
-            
-def test_04_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            store.rpush(redis_key, "jc_test_org_groups_example")
-            set_group_id("jc_test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
-        assert str_groups == ["GakuNinTF", "jc_test_org_groups_example"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups_example) is set to Redis.') in info_logs
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_03_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_groups_example" is appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_groups_example) is set to Redis." is logged.
+def test_03_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
+        target_group_id = "jc_test_org_groups_example"
+        set_group_id(target_group_id)
 
-def test_05_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            # binary_groups = store.lrange(redis_key, 0, -1)
-            # str_groups = [str(group, 'utf-8') for group in binary_groups]
-            # print('str_groupsの確認前', str_groups)
-            set_group_id("jc_test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
-        assert str_groups == ["jc_test_org_groups_example"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups_example) is set to Redis.') in info_logs
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_04_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_groups_example" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_groups_example) is set to Redis." is logged.            
+def test_04_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key, "jc_test_org_groups_example")
 
-def test_06_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            print('str_groupsの確認前', str_groups)
-            set_group_id("jc_test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "jc_test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_05_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is created, and the value "jc_test_org_groups_example" is registered.
+# "Group ID(jc_test_org_groups_example) is set to Redis." is logged.
+def test_05_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+
+        target_group_id = "jc_test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == [target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_06_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created, and the value "jc_test_org_groups_example" is not registered.
+# "Group ID(jc_test_org_groups_example) is not set to Redis." is logged.
+def test_06_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.flushdb()
+
+        target_group_id = "jc_test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups_example) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_07_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_roles_contributor" is appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_roles_contributor) is set to Redis." is logged.
+def test_07_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-def test_07_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("jc_test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        assert str_groups == ["GakuNinTF", "jc_test_org_roles_contributor"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles_contributor) is set to Redis.') in info_logs
+        target_group_id = "jc_test_org_roles_contributor"
+        set_group_id(target_group_id)
 
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
 
-def test_08_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            store.rpush(redis_key, "jc_test_org_roles_contributor")
-            set_group_id("jc_test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
-        assert str_groups == ["GakuNinTF", "jc_test_org_roles_contributor"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles_contributor) is set to Redis.') in info_logs
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_08_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_roles_contributor" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_roles_contributor) is set to Redis." is logged.
+def test_08_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key, "jc_test_org_roles_contributor")
 
+        target_group_id = "jc_test_org_roles_contributor"
+        set_group_id(target_group_id)
+        set_group_id("jc_test_org_roles_contributor")
 
-def test_09_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
-        assert str_groups == ["jc_test_org_roles_contributor"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles_contributor) is set to Redis.') in info_logs
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_09_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is created, and the value "jc_test_org_roles_contributor" is registered.
+# "Group ID(jc_test_org_roles_contributor) is set to Redis." is logged.
+def test_09_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_10_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
+        target_group_id = "jc_test_org_roles_contributor"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == [target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_10_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created, and the value "jc_test_org_roles_contributor" is not registered.
+# "Group ID(jc_test_org_roles_contributor) is set to Redis." is logged.
+def test_10_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+
+        target_group_id = "jc_test_org_roles_contributor"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles_contributor) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_11_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_groups" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_groups) is not set to Redis." is logged.
+def test_11_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-def test_11_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("jc_test_org_groups")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
+        target_group_id = "jc_test_org_groups"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == ["GakuNinTF"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_12_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(jc_test_org_groups) is not set to Redis." is logged.
+def test_12_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_12_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_groups")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
+        target_group_id = "jc_test_org_groups"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_13_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(jc_test_org_groups) is not set to Redis." is logged.
+def test_13_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_13_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_groups")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
+        target_group_id = "jc_test_org_groups"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_groups) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_14_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_test_org_roles" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_test_org_roles) is not set to Redis." is logged.
+def test_14_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-def test_14_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("jc_test_org_roles")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
-        print('str_groupsの確認', str_groups)
+        target_group_id = "jc_test_org_roles"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == ["GakuNinTF"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_15_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(jc_test_org_roles) is not set to Redis." is logged.
+def test_15_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_15_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_roles")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "jc_test_org_roles"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_16_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(jc_test_org_roles) is not set to Redis." is logged.
+def test_16_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_16_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("jc_test_org_roles")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "jc_test_org_roles"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(jc_test_org_roles) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_17_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "test_org_groups_example" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(test_org_groups_example) is not set to Redis." is logged.
+def test_17_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-def test_17_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == ["GakuNinTF"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_groups_example) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_18_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(test_org_groups_example) is not set to Redis." is logged.
+def test_18_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_18_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_groups_example) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_19_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(test_org_groups_example) is not set to Redis." is logged.
+def test_19_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_19_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("test_org_groups_example")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_groups_example"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_groups_example) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_20_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "test_org_roles_contributor" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(test_org_roles_contributor) is not set to Redis." is logged.
+def test_20_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-def test_20_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            store.rpush(redis_key, "GakuNinTF")
-            set_group_id("test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_roles_contributor"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == ["GakuNinTF"]
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_roles_contributor) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_21_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(test_org_roles_contributor) is not set to Redis." is logged.
+def test_21_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_21_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_roles_contributor"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_roles_contributor) is not set to Redis.') in info_logs
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_22_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The key "test_org_gakunin_groups" is not created.
+# "Group ID(test_org_roles_contributor) is not set to Redis." is logged.
+def test_22_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name']['org_sp_fqdn'] = 'xxxx'
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
 
-def test_22_set_group_id(caplog: LogCaptureFixture):
-    with app.app_context():
-        with patch("config.config.SP_AUTHORIZATION_DICT", data_2):
-            caplog.set_level(INFO)
-            redis_connection = RedisConnection()
-            store = redis_connection.connection(GROUPS_DB)
-            redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
-            store.flushdb()
-            set_group_id("test_org_roles_contributor")
-            binary_groups = store.lrange(redis_key, 0, -1)
-            str_groups = [str(group, 'utf-8') for group in binary_groups]
-            info_logs = [record for record in caplog.record_tuples if record[1] == logging.INFO]
+        target_group_id = "test_org_roles_contributor"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
         assert str_groups == []
-        assert ('tests.test_utils', logging.INFO, 'Group ID(test_org_roles_contributor) is not set to Redis.') in info_logs
+        assert 'Group ID(test_org_roles_contributor) is not set to Redis.' in info_logs
 
-
-def test_23_set_group_id():
-    with app.app_context():
-        with patch('new_group.utils.set_group_id', side_effect=redis.ConnectionError):
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_23_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The connection to Redis is refused.
+# ConnectionError is raised.
+def test_23_set_group_id(app):
+    with patch("new_group.utils.RedisConnection") as mock_redis_connection:
+        mock_redis_connection.side_effect = ConnectionError('Connection refused.')
+        with pytest.raises(ConnectionError) as excinfo:
             set_group_id("jc_test_org_groups_example")
-        # with pytest.raises(ConnectionRefusedError) as excinfo:
-            # redis_connection = RedisConnection()
-            # store = redis_connection.connection(GROUPS_DB)
-            # # store = redis.StrictRedis(host='localhost', port=6379, db=0)
-            # store.shutdown()
-            
-        # assert "ConnectionError" in str(excinfo.value)
 
-        # subprocess.run(["sudo", "systemctl", "restart", "redis"])
+        assert 'Connection refused.' in str(excinfo.value)
 
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_24_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_roles_sys" is appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_roles_sys) is set to Redis." is logged.
+def test_24_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
 
-data = {
-    'Organization Name': {
-        'sp_connector_id': 'connector1',
-        'tls_client_cert': '/root/server.cer',
-        'org_sp_fqdn': 'test.org'
+        target_group_id = "jc_roles_sys"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_25_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_roles_sys" is not appended to the end of the key "test_org_gakunin_groups".
+# "Group ID(jc_roles_sys) is not set to Redis." is logged.
+def test_25_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key, "jc_roles_sys")
+
+        target_group_id = "jc_roles_sys"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_26_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_roles_sys" is appended to the end of the key "test_org_gakunin_groups".
+# The value "jc_roles_sys" is appended to the end of the key "test2_org_gakunin_groups".
+# "Group ID(jc_roles_sys) is set to Redis." is logged.
+def test_26_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name2'] = {
+        'sp_connector_id': 'connector2',
+        'tls_client_cert': prepare_authorization_dict['Organization Name']['tls_client_cert'],
+        'org_sp_fqdn': 'test2.org'
     }
-}
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        redis_key2 = 'test2_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key2, "GakuNinTF")
 
-data_2 = {
-    'Organization Name': {
-        'sp_connector_id': 'connector1',
-        'tls_client_cert': '/root/server.cer',
-        'org_sp_fqdn': 'xxxx'
+        target_group_id = "jc_roles_sys"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        binary_groups2 = prepare_redis_connection.lrange(redis_key2, 0, -1)
+        str_groups2 = [str(group, 'utf-8') for group in binary_groups2]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert str_groups2 == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]
+
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_27_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_roles_sys" is not appended to the end of the key "test_org_gakunin_groups".
+# The value "jc_roles_sys" is not appended to the end of the key "test2_org_gakunin_groups".
+# "Group ID(jc_roles_sys) is set to Redis." is logged.
+def test_27_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name2'] = {
+        'sp_connector_id': 'connector2',
+        'tls_client_cert': prepare_authorization_dict['Organization Name']['tls_client_cert'],
+        'org_sp_fqdn': 'test2.org'
     }
-}
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key, "jc_roles_sys")
+        redis_key2 = 'test2_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key2, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key2, "jc_roles_sys")
+
+        target_group_id = "jc_roles_sys"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        binary_groups2 = prepare_redis_connection.lrange(redis_key2, 0, -1)
+        str_groups2 = [str(group, 'utf-8') for group in binary_groups2]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert str_groups2 == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is not set to Redis.'.format(target_group_id) == info_logs[0]
+    
+# def set_group_id(group_id):
+# .tox/c1/bin/pytest --cov=new_group tests/test_utils.py::test_28_set_group_id -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+# The value "jc_roles_sys" is not appended to the end of the key "test_org_gakunin_groups".
+# The value "jc_roles_sys" is appended to the end of the key "test2_org_gakunin_groups".
+# "Group ID(jc_roles_sys) is set to Redis." is logged.
+def test_28_set_group_id(app, test_logger, prepare_authorization_dict, prepare_redis_connection):
+    prepare_authorization_dict['Organization Name2'] = {
+        'sp_connector_id': 'connector2',
+        'tls_client_cert': prepare_authorization_dict['Organization Name']['tls_client_cert'],
+        'org_sp_fqdn': 'test2.org'
+    }
+    with patch("config.config.SP_AUTHORIZATION_DICT", prepare_authorization_dict):
+        redis_key = 'test_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key, "GakuNinTF")
+        prepare_redis_connection.rpush(redis_key, "jc_roles_sys")
+        redis_key2 = 'test2_org' + GAKUNIN_GROUP_SUFFIX
+        prepare_redis_connection.rpush(redis_key2, "GakuNinTF")
+
+        target_group_id = "jc_roles_sys"
+        set_group_id(target_group_id)
+
+        binary_groups = prepare_redis_connection.lrange(redis_key, 0, -1)
+        str_groups = [str(group, 'utf-8') for group in binary_groups]
+        binary_groups2 = prepare_redis_connection.lrange(redis_key2, 0, -1)
+        str_groups2 = [str(group, 'utf-8') for group in binary_groups2]
+        info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
+        assert str_groups == ["GakuNinTF", target_group_id]
+        assert str_groups2 == ["GakuNinTF", target_group_id]
+        assert 'Group ID({}) is set to Redis.'.format(target_group_id) == info_logs[0]

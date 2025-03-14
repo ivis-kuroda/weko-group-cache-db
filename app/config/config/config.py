@@ -25,7 +25,7 @@ GROUPS_API_URL = 'https://cg.gakunin.jp/api/groups/'
 
 # redis config
 CACHE_TYPE = 'redis'
-REDIS_HOST = 'localhost'
+REDIS_HOST = 'redis'
 REDIS_URL = 'redis://' + REDIS_HOST + ':6379/'
 GROUPS_DB = 0
 CELERY_BROKER_DB = 1
