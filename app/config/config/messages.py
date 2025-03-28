@@ -6,6 +6,7 @@ COMMAND_FAILED_DETAIL = 'For details, see {}.'
 # app/get-groups/get_groups/tasks.py
 CREATE_TASK_SUCCESS = 'All set_groups_task are created.'
 CREATE_TASK_FAILED = 'Error occurred in create_set_groups_task.'
+FQDN_NOT_DEFINED = 'FQDN is not defined in config for {}.'
 TASK_SUCCESS = 'FQDN({}) is success.'
 TASK_FAILED = 'FQDN({}) is failed.'
 

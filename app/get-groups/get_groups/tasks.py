@@ -15,6 +15,9 @@ def create_set_groups_task():
 
     try:
         for org in org_list:
+            if not config.SP_AUTHORIZATION_DICT[org].get('org_sp_fqdn'):
+                logger.error(messages.FQDN_NOT_DEFINED.format(org))
+                continue
             set_groups_task.delay(config.SP_AUTHORIZATION_DICT[org]['org_sp_fqdn'])
     except Exception as ex:
         logger.error(messages.CREATE_TASK_FAILED, exc_info=True)
