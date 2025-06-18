@@ -36,21 +36,25 @@ def prepare_authorization_dict():
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
     function_dir = current_dir.split('app')[0]
-    key_file = os.path.join(function_dir, 'nginx/keys/server.crt')
+    cert_file = os.path.join(function_dir, 'nginx/keys/server.crt')
+    key_file = os.path.join(function_dir, 'nginx/keys/server.key')
     return {
         'Organization Name': {
             'sp_connector_id': 'connector1',
-            'tls_client_cert': key_file,
+            'tls_client_cert': cert_file,
+            'tls_client_key': key_file,
             'org_sp_fqdn': 'org.sp.co.jp'
         },
         'Organization Name2': {
             'sp_connector_id': 'connector2',
-            'tls_client_cert': key_file,
+            'tls_client_cert': cert_file,
+            'tls_client_key': key_file,
             'org_sp_fqdn': 'org.sp2.co.jp'
         },
         'Organization Name3': {
             'sp_connector_id': 'connector3',
-            'tls_client_cert': key_file,
+            'tls_client_cert': cert_file,
+            'tls_client_key': key_file,
             'org_sp_fqdn': 'org.sp3.co.jp'
         }
     }

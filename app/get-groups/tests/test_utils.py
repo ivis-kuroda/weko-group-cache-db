@@ -20,7 +20,7 @@ def test_11_set_groups(prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1
@@ -52,7 +52,7 @@ def test_12_set_groups(prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1
@@ -79,7 +79,7 @@ def test_13_get_groups_from_gakunin(prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1
@@ -89,7 +89,7 @@ def test_13_get_groups_from_gakunin(prepare_authorization_dict):
             mock_get.return_value = mock_response
             result = get_groups_from_gakunin('org.sp.co.jp')
         
-            assert [{"id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF","title" : "group","description" : "group-test","map_totalMembers" : 1}] == result
+            assert [{"id" : "https://cg.gakunin.jp/gr/GakuNinTF","title" : "group","description" : "group-test","map_totalMembers" : 1}] == result
 
 # def get_groups_from_gakunin(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_14_get_groups_from_gakunin -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
@@ -181,6 +181,32 @@ def test_19_get_groups_from_gakunin(prepare_authorization_dict):
             get_groups_from_gakunin(target_fqdn)
 
         assert str(excinfo.value) == "tls_client_cert({}) is not found.".format('/XXX/YYY.cer')
+
+# def get_groups_from_gakunin(fqdn):
+# .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_get_groups_from_gakunin_key_file -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
+def test_get_groups_from_gakunin_key_file(prepare_authorization_dict):
+    key_name = 'Organization Name'
+    prepare_authorization_dict[key_name]['tls_client_key'] = ''
+    mock_data = {
+        key_name: prepare_authorization_dict[key_name]
+    }
+    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+        target_fqdn = 'org.sp.co.jp'
+        with pytest.raises(Exception) as excinfo:
+            get_groups_from_gakunin(target_fqdn)
+
+        assert str(excinfo.value) == "tls_client_key is not found in config for FQDN({}).".format(target_fqdn)
+    
+    prepare_authorization_dict[key_name]['tls_client_key'] = '/XXX/YYY.key'
+    mock_data = {
+        key_name: prepare_authorization_dict[key_name]
+    }
+    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+        target_fqdn = 'org.sp.co.jp'
+        with pytest.raises(Exception) as excinfo:
+            get_groups_from_gakunin(target_fqdn)
+
+        assert str(excinfo.value) == "tls_client_key({}) is not found.".format('/XXX/YYY.key')
 
 # def get_groups_from_gakunin(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_20_get_groups_from_gakunin -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp

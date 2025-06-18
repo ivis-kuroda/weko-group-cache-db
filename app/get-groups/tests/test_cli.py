@@ -19,7 +19,7 @@ def test_01_get_groups(runner, test_logger, prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1
@@ -49,7 +49,7 @@ def test_02_get_groups(runner, test_logger, prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1

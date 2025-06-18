@@ -26,11 +26,17 @@ def test_08_create_set_groups_task(test_logger, prepare_authorization_dict):
         key_name: prepare_authorization_dict[key_name]
     }
     with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
-        with pytest.raises(Exception):
-            create_set_groups_task()
+        create_set_groups_task()
 
         error_logs = [record[2] for record in test_logger.record_tuples if record[1] == ERROR]
-        assert 'Error occurred in create_set_groups_task.' == error_logs[0]
+        assert 'FQDN is not defined in config for Organization Name.' == error_logs[0]
+    
+    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
+        with patch('get_groups.tasks.set_groups_task.delay', side_effect=Exception('Test Exception')):
+            with pytest.raises(Exception):
+                create_set_groups_task()
+            error_logs = test_logger.record_tuples[-1][2]
+            assert 'Error occurred in create_set_groups_task.' == error_logs
 
 # def set_groups_task(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_tasks.py::test_09_set_groups_task -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
@@ -45,7 +51,7 @@ def test_09_set_groups_task(test_logger, prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1
@@ -73,7 +79,7 @@ def test_10_set_groups_task(test_logger, prepare_authorization_dict):
                 "totalResults" : 1,
                 "entry" : [
                     {
-                        "id" : "https:\/\/cg.gakunin.jp\/gr\/GakuNinTF",
+                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
                         "title" : "group",
                         "description" : "group-test",
                         "map_totalMembers" : 1

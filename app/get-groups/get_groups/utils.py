@@ -16,7 +16,7 @@ def set_groups(fqdn):
     groups = get_groups_from_gakunin(fqdn)
     group_id_list = []
     for group in groups:
-        group_id = group['id'].split('\/')[-1]
+        group_id = group['id'].split('/')[-1]
         group_id_list.append(group_id)
 
     # replace special characters
@@ -48,9 +48,13 @@ def get_groups_from_gakunin(fqdn):
         raise Exception(messages.TLS_CLIENT_CERT_NOT_FOUND.format(fqdn))
     if not os.path.exists(target_sp['tls_client_cert']):
         raise Exception(messages.TLS_CLIENT_CERT_FILE_NOT_FOUND.format(target_sp['tls_client_cert']))
+    if not target_sp.get('tls_client_key'):
+        raise Exception(messages.TLS_CLIENT_KEY_NOT_FOUND.format(fqdn))
+    if not os.path.exists(target_sp['tls_client_key']):
+        raise Exception(messages.TLS_CLIENT_KEY_FILE_NOT_FOUND.format(target_sp['tls_client_key']))
     target_url = urljoin(config.GROUPS_API_URL, target_sp['sp_connector_id'])
     # get groups what connected to the target sp
-    response = requests.get(target_url, cert=target_sp['tls_client_cert'])
+    response = requests.get(target_url, cert=(target_sp['tls_client_cert'], target_sp['tls_client_key']))
     response.raise_for_status()
     return response.json()['entry']
 

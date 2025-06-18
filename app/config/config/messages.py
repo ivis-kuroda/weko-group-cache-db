@@ -15,6 +15,8 @@ FQDN_NOT_FOUND = 'FQDN({}) is not found in config.'
 SP_CONNECTOR_ID_NOT_FOUND = 'sp_connector_id is not found in config for FQDN({}).'
 TLS_CLIENT_CERT_NOT_FOUND = 'tls_client_cert is not found in config for FQDN({}).'
 TLS_CLIENT_CERT_FILE_NOT_FOUND = 'tls_client_cert({}) is not found.'
+TLS_CLIENT_KEY_NOT_FOUND = 'tls_client_key is not found in config for FQDN({}).'
+TLS_CLIENT_KEY_FILE_NOT_FOUND = 'tls_client_key({}) is not found.'
 
 # app/new-group/new_group/utils.py
 GROUP_ID_SET = 'Group ID({}) is set to Redis.'

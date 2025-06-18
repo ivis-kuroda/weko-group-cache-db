@@ -1,6 +1,7 @@
 # sp authorization information for getting groups
 #   sp_connector_id: sp connector id
 #   tls_client_cert: path to tls client certification
+#   tls_client_key: path to tls client key
 #   org_sp_fqdn: fqdn of SP 
 SP_AUTHORIZATION_DICT = {
 }
