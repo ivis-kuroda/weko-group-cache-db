@@ -4,4 +4,8 @@ version = "0.1.0"
 description = "CLI tool for caching mAP group information on JAIRO Cloud."
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "redis>=7.0.0",
+    "requests>=2.32.5",
+    "rich-click>=1.9.4",
+]
