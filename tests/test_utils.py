@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 from requests import Response
 
-from config.config import GAKUNIN_GROUP_SUFFIX, GROUPS_DB
-from jc_redis.redis_conn import RedisConnection
-from get_groups.utils import get_groups_from_gakunin, set_groups, set_groups_to_redis
+from config import GAKUNIN_GROUP_SUFFIX, GROUPS_DB
+from redis_conn import RedisConnection
+from utils import get_groups_from_gakunin, set_groups, set_groups_to_redis
 
 # def set_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_11_set_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp

@@ -2,7 +2,8 @@ from logging import FileHandler, Formatter, getLogger
 
 import click
 
-from config import config, messages
+from . import config
+from . import messages
 from .utils import set_groups
 
 logger = getLogger(__name__)
@@ -21,7 +22,7 @@ def group():
 @click.option('-f', '--fqdn', required=True)
 def get_groups(fqdn):
     """Get groups from Gakunin API and set to Redis
-    
+
     Arguments:
         fqdn(str): fqdn of the target sp
     """

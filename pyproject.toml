@@ -9,3 +9,6 @@ dependencies = [
     "requests>=2.32.5",
     "rich-click>=1.9.4",
 ]
+
+[tool.pyright]
+extraPaths = ["weko-group-cache-db"]

@@ -1,6 +1,7 @@
 import redis
-from config import config
 from redis import sentinel
+
+from . import config
 
 
 class RedisConnection:
@@ -17,7 +18,7 @@ class RedisConnection:
     def __init__(self):
         self.redis_type = config.CACHE_TYPE
     
-    def connection(self, db):
+    def connection(self, db) -> redis.Redis:
         """Establish Redis connection and return Redis store object
 
         Arguments:
@@ -32,6 +33,8 @@ class RedisConnection:
                 store = self.redis_connection(db)
             elif self.redis_type == 'sentinel':
                 store = self.sentinel_connection(db)
+            if not store:
+                raise Exception('Failed to connect to Redis')
         except Exception as ex:
             raise ex
         
@@ -49,7 +52,7 @@ class RedisConnection:
         store = None
         try:
             redis_url = config.REDIS_URL + str(db)
-            store = redis.StrictRedis.from_url(redis_url)
+            store = redis.Redis.from_url(redis_url)
         except Exception as ex:
             raise ex
 

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from get_groups.tasks import create_set_groups_task, set_groups_task
+from tasks import create_set_groups_task, set_groups_task
 
 # def create_set_groups_task():
 # .tox/c1/bin/pytest --cov=get_groups tests/test_tasks.py::test_07_create_set_groups_task -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp

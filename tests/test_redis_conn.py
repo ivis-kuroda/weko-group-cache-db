@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import redis
 
-from jc_redis.redis_conn import RedisConnection
+from redis_conn import RedisConnection
 
 # def __init__(self):
 # .tox/c1/bin/pytest --cov=jc_redis tests/test_redis_conn.py::test_23___init__ -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp

@@ -2,8 +2,8 @@
 from logging import ERROR, INFO
 from unittest.mock import MagicMock, patch
 
-from config.config import CLI_LOG_OUTPUT_PATH
-from get_groups.cli import get_groups
+from config import CLI_LOG_OUTPUT_PATH
+from cli import get_groups
 
 # def get_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_cli.py::test_01_get_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp

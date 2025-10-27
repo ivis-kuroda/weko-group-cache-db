@@ -4,8 +4,9 @@ from urllib.parse import urljoin
 
 import requests
 
-from config import config, messages
-from jc_redis.redis_conn import RedisConnection
+from . import config
+from . import messages
+from .redis_conn import RedisConnection
 
 def set_groups(fqdn):
     """Get groups from Gakunin API and set to Redis
@@ -74,4 +75,5 @@ def set_groups_to_redis(fqdn, group_id_list):
     # set new group list and expire time
     updated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     store.hset(redis_key, mapping={"updated_at": updated_at, "groups": ",".join(group_id_list)})
-    store.expire(redis_key, config.GROUPS_TTL)
+    if config.GROUPS_TTL >= 0:
+        store.expire(redis_key, config.GROUPS_TTL)
