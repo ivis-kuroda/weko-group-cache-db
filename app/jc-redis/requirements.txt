@@ -1,6 +1,0 @@
-celery
-click
-redis
-requests
--e ../config
--e ../jc-redis
