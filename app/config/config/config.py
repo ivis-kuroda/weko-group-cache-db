@@ -31,7 +31,7 @@ REDIS_URL = 'redis://' + REDIS_HOST + ':6379/'
 GROUPS_DB = 0
 CELERY_BROKER_DB = 1
 CELERY_BACKEND_DB = 2
-GROUPS_TTL = 86400
+GROUPS_TTL = -1  # never expire
 CACHE_REDIS_SENTINEL_MASTER = 'mymaster'
 CACHE_REDIS_SENTINELS = [("sentinel-service.re","26379")]
 
