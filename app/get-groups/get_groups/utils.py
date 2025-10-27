@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from urllib.parse import urljoin
 
 import requests
@@ -70,9 +71,7 @@ def set_groups_to_redis(fqdn, group_id_list):
     store = redis_connection.connection(config.GROUPS_DB)
     # create redis key
     redis_key = fqdn + config.GAKUNIN_GROUP_SUFFIX
-    if store.exists(redis_key):
-        # delete old group list
-        store.delete(redis_key)
     # set new group list and expire time
-    store.rpush(redis_key, *group_id_list)
+    updated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    store.hset(redis_key, mapping={"updated_at": updated_at, "groups": ",".join(group_id_list)})
     store.expire(redis_key, config.GROUPS_TTL)
