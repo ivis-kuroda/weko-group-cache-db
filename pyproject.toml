@@ -10,5 +10,5 @@ dependencies = [
     "rich-click>=1.9.4",
 ]
 
-[tool.pyright]
-extraPaths = ["weko-group-cache-db"]
+[project.scripts]
+wgcd = "weko_group_cache_db.cli:main"
