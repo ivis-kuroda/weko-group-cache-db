@@ -1,0 +1,22 @@
+# compose.yaml
+# Redis service for stubbing JAIRO Cloud.
+
+services:
+  app:
+    restart: "always"
+    build:
+      context: .
+      target: development
+    volumes:
+      - .:/code
+      - /code/.venv
+
+  redis:
+    restart: "always"
+    image: redis:7.4.1
+    ports:
+      - "26301:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 100m
