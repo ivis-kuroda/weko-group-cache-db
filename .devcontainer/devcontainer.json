@@ -16,7 +16,13 @@
         "python.pythonPath": "/code/.venv/bin/python",
         "python.languageServer": "Pylance",
         "[python]": {
-          "editor.rulers": [88]
+          "editor.rulers": [88],
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
         },
         "python.testing.pytestArgs": [
           "tests"
@@ -32,7 +38,8 @@
         "mhutchie.git-graph",
         "eamodio.gitlens",
         "editorconfig.editorconfig",
-        "tamasfe.even-better-toml"
+        "tamasfe.even-better-toml",
+        "charliermarsh.ruff"
       ]
     }
   }

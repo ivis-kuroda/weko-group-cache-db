@@ -38,3 +38,32 @@ addopts = [
 [tool.coverage.run]
 source = ["weko_group_cache_db"]
 omit = ["*/__init__.py", "*/tests/*"]
+
+[tool.ruff.lint]
+# refer to https://docs.astral.sh/ruff/settings/#lint
+ignore = [
+  "D203",
+  "D213",
+  "COM812",
+  "ANN201",
+]
+preview = true
+select = ["ALL"]
+
+[tool.ruff.lint.isort]
+# refer to https://docs.astral.sh/ruff/settings/#lintisort
+combine-as-imports = true
+known-first-party = ["weko_group_cache_db"]
+lines-between-types = 1
+
+[tool.ruff.analyze]
+# refer to https://docs.astral.sh/ruff/settings/#analyze
+detect-string-imports = true
+
+[tool.ruff.format]
+# refer to https://docs.astral.sh/ruff/settings/#format
+docstring-code-format = true
+docstring-code-line-length = 80
+line-ending = "lf"
+preview = true
+skip-magic-trailing-comma = false
