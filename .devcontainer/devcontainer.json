@@ -1,0 +1,33 @@
+{
+  "name": "weko-group-cache-db Dev Container",
+  "dockerComposeFile": "../compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/code",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    }
+  },
+  "remoteUser": "pyuser",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.pythonPath": "/code/.venv/bin/python",
+        "python.languageServer": "Pylance",
+        "[python]": {
+          "editor.rulers": [88]
+        }
+      },
+      "extensions": [
+        "visualstudioexptteam.vscodeintellicode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "mhutchie.git-graph",
+        "eamodio.gitlens",
+        "editorconfig.editorconfig",
+        "tamasfe.even-better-toml"
+      ]
+    }
+  }
+}
