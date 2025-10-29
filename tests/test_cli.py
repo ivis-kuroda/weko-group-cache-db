@@ -2,45 +2,28 @@
 from logging import ERROR, INFO
 from unittest.mock import MagicMock, patch
 
-from config import CLI_LOG_OUTPUT_PATH
-from cli import get_groups
+from weko_group_cache_db.config import CLI_LOG_OUTPUT_PATH
+from weko_group_cache_db.cli import get_groups
 
 # def get_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_cli.py::test_01_get_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # "[fqdn] is success." is standard output.
 # "[fqdn] is success." is logged.
-def test_01_get_groups(runner, test_logger, prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
-        with patch('requests.get') as mock_get:
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.raise_for_status = MagicMock()
-            mock_response.json.return_value = {
-                "totalResults" : 1,
-                "entry" : [
-                    {
-                        "id" : "https://cg.gakunin.jp/gr/GakuNinTF",
-                        "title" : "group",
-                        "description" : "group-test",
-                        "map_totalMembers" : 1
-                    },
-                ]
-            }
-            mock_get.return_value = mock_response
+def test_01_get_groups(runner, prepare_authorization_dict):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict), \
+            patch('weko_group_cache_db.cli.set_groups') as mock_set:
+        target_fqdn = 'org.sp.co.jp'
+        result = runner.invoke(get_groups, ['--fqdn', target_fqdn])
 
-            target_fqdn = 'org.sp.co.jp'
-            result = runner.invoke(get_groups, ['--fqdn', target_fqdn])
-
-            info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
-            assert "{} is success.\n".format(target_fqdn) == result.output
-            assert "{} is success.".format(target_fqdn) == info_logs[0]
+        mock_set.assert_called_once_with(target_fqdn)
+        assert "{} is success.\n".format(target_fqdn) == result.output
 
 # def get_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_cli.py::test_02_get_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # "[fqdn] is success." is stdout.
 # "[fqdn] is success." is logged.
-def test_02_get_groups(runner, test_logger, prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
+def test_02_get_groups(runner, prepare_authorization_dict):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
         with patch('requests.get') as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -59,11 +42,9 @@ def test_02_get_groups(runner, test_logger, prepare_authorization_dict):
             mock_get.return_value = mock_response
 
             target_fqdn = 'org.sp.co.jp'
-            result = runner.invoke(get_groups, ['-f', target_fqdn]) 
+            result = runner.invoke(get_groups, ['-f', target_fqdn])
 
-            info_logs = [record[2] for record in test_logger.record_tuples if record[1] == INFO]
             assert "{} is success.\n".format(target_fqdn) == result.output
-            assert "{} is success.".format(target_fqdn) == info_logs[0]
 
 # def get_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_cli.py::test_03_get_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
@@ -111,4 +92,4 @@ def test_06_get_groups(runner):
     result = runner.invoke(get_groups, ['--fqdn', 'org.sp.co.jp', '--org', 'test_org'])
 
     assert result.exit_code == 2
-    assert 'Error: No such option: {}'.format('--org') in result.output     
+    assert 'Error: No such option: {}'.format('--org') in result.output

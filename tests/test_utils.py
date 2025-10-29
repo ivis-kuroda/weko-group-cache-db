@@ -3,15 +3,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 from requests import Response
 
-from config import GAKUNIN_GROUP_SUFFIX, GROUPS_DB
-from redis_conn import RedisConnection
-from utils import get_groups_from_gakunin, set_groups, set_groups_to_redis
+from weko_group_cache_db.config import GAKUNIN_GROUP_SUFFIX, GROUPS_DB
+from weko_group_cache_db.redis_conn import RedisConnection
+from weko_group_cache_db.utils import get_groups_from_gakunin, set_groups, set_groups_to_redis
 
 # def set_groups(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_11_set_groups -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # Process completed successfully
 def test_11_set_groups(prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):        
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
         with patch('requests.get') as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -43,7 +43,7 @@ def test_12_set_groups(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         with patch('requests.get') as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -70,7 +70,7 @@ def test_12_set_groups(prepare_authorization_dict):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_13_get_groups_from_gakunin -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # retrieved group information is returned
 def test_13_get_groups_from_gakunin(prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
+    with patch('conweko_group_cache_dbfig.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
         with patch('requests.get') as mock_get:
             mock_response = MagicMock()
             mock_response.status_code = 200
@@ -88,14 +88,14 @@ def test_13_get_groups_from_gakunin(prepare_authorization_dict):
             }
             mock_get.return_value = mock_response
             result = get_groups_from_gakunin('org.sp.co.jp')
-        
+
             assert [{"id" : "https://cg.gakunin.jp/gr/GakuNinTF","title" : "group","description" : "group-test","map_totalMembers" : 1}] == result
 
 # def get_groups_from_gakunin(fqdn):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_14_get_groups_from_gakunin -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # "FQDN([fqdn]) is not found in config." exception
 def test_14_get_groups_from_gakunin(prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
         target_fqdn = 'XXXXXXX'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -111,7 +111,7 @@ def test_15_get_groups_from_gakunin(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -127,7 +127,7 @@ def test_16_get_groups_from_gakunin(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -143,7 +143,7 @@ def test_17_get_groups_from_gakunin(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -159,7 +159,7 @@ def test_18_get_groups_from_gakunin(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -175,7 +175,7 @@ def test_19_get_groups_from_gakunin(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -190,18 +190,18 @@ def test_get_groups_from_gakunin_key_file(prepare_authorization_dict):
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
 
         assert str(excinfo.value) == "tls_client_key is not found in config for FQDN({}).".format(target_fqdn)
-    
+
     prepare_authorization_dict[key_name]['tls_client_key'] = '/XXX/YYY.key'
     mock_data = {
         key_name: prepare_authorization_dict[key_name]
     }
-    with patch('config.config.SP_AUTHORIZATION_DICT', mock_data):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', mock_data):
         target_fqdn = 'org.sp.co.jp'
         with pytest.raises(Exception) as excinfo:
             get_groups_from_gakunin(target_fqdn)
@@ -212,7 +212,7 @@ def test_get_groups_from_gakunin_key_file(prepare_authorization_dict):
 # .tox/c1/bin/pytest --cov=get_groups tests/test_utils.py::test_20_get_groups_from_gakunin -s -vv -s --cov-branch --cov-report=term --basetemp=.tox/c1/tmp
 # 404 Client Error
 def test_20_get_groups_from_gakunin(prepare_authorization_dict):
-    with patch('config.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
+    with patch('weko_group_cache_db.config.SP_AUTHORIZATION_DICT', prepare_authorization_dict):
         with patch('requests.get') as mock_get:
             mock_response = Response()
             mock_response.status_code = 404
@@ -229,7 +229,7 @@ def test_20_get_groups_from_gakunin(prepare_authorization_dict):
 # The specified group_id_list must be registered as the value of the key with the list type.
 # The expiration date of the key must be set to 86400.
 def test_21_set_groups_to_redis():
-    with patch('config.config.GROUPS_TTL', 86400):
+    with patch('weko_group_cache_db.config.GROUPS_TTL', 86400):
         redis_connection = RedisConnection()
         store = redis_connection.connection(GROUPS_DB)
         store.flushdb()
@@ -248,7 +248,7 @@ def test_21_set_groups_to_redis():
 # Only the value of group_id_list specified for the key value should be registered with the list type.
 # The expiration date of the key must be set to 86400.
 def test_22_set_groups_to_redis():
-    with patch('config.config.GROUPS_TTL', 86400):
+    with patch('weko_group_cache_db.config.GROUPS_TTL', 86400):
         redis_connection = RedisConnection()
         store = redis_connection.connection(GROUPS_DB)
         target_fqdn = 'org_sp_co_jp'

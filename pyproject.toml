@@ -12,3 +12,18 @@ dependencies = [
 
 [project.scripts]
 wgcd = "weko_group_cache_db.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.coverage.run]
+source = ["weko_group_cache_db"]
+omit = ["*/__init__.py", "*/tests/*"]
