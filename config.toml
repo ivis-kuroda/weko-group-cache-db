@@ -1,0 +1,38 @@
+# Configuration for weko-group-cache-db command.
+
+# === Cache key suffix of group information in Redis. ===
+# cache_key_suffix = "_gakunin_groups"
+
+# === Cache time-to-live of group information in Redis. ===
+#   If it specified less than 0, it will be considered as no expiration.
+# cache_ttl = 86400
+
+# === Map groups API endpoint. ===
+map_groups_api_endpoint = "https://sample.gakunin.jp/api/groups/"
+
+
+# === Redis type to use. `redis` or `sentinel` is allowed. ===
+# redis_type = "redis"
+
+# === Redis service host name. ===
+# redis_host = "localhost"
+
+# === Redis service port number. ===
+# redis_port = 6379
+
+# === Redis DB index to use for caching group information. ===
+# redis_db_index = 4
+
+# === Server name of the Redis sentinel master. ===
+# redis_sentinel_master = "redis-master"
+
+# === A list of Redis sentinel configurations. ===
+#   `host` and `port` can be specified repeatedly.
+#   Write a `sentinels` table for each Redis service.
+# [[sentinels]]
+# host = "sentinel-1"
+# port = 26379
+
+# [[sentinels]]
+# host = "sentinel-2"
+# port = 26380

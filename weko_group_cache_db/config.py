@@ -1,40 +1,165 @@
-# sp authorization information for getting groups
-#   sp_connector_id: sp connector id
-#   tls_client_cert: path to tls client certification
-#   tls_client_key: path to tls client key
-#   org_sp_fqdn: fqdn of SP 
-SP_AUTHORIZATION_DICT = {
-}
+#
+# Copyright (C) 2025 National Institute of Informatics.
+#
 
-# special characters what are used in group_id
-#   prefix: prefix of group_id
-#   group_suffix: suffix of group_id for groups
-#   role_suffix: suffix of group_id for roles
-#   sys_admin_group: system admin group id
-GROUP_ID_SPECIAL_CHARS = {
-    'prefix': 'jc_',
-    'group_suffix': '_groups_',
-    'role_suffix': '_roles_',
-    'sys_admin_group': 'jc_roles_sys'
-}
+"""Settings module for weko-group-cache-db."""
 
-# suffix of redis key for gakunin groups
-GAKUNIN_GROUP_SUFFIX = '_gakunin_groups'
+import tomllib
+import typing as t
 
-# Gakunin API URL(Groups API)
-GROUPS_API_URL = 'https://cg.gakunin.jp/api/groups/'
+from pathlib import Path
 
-# redis config
-CACHE_TYPE = 'redis'
-REDIS_HOST = 'redis'
-REDIS_URL = 'redis://' + REDIS_HOST + ':6379/'
-GROUPS_DB = 0
-CELERY_BROKER_DB = 1
-CELERY_BACKEND_DB = 2
-GROUPS_TTL = -1  # never expire
-CACHE_REDIS_SENTINEL_MASTER = 'mymaster'
-CACHE_REDIS_SENTINELS = [("sentinel-service.re","26379")]
+import rich_click as click
 
-# logging config
-CLI_LOG_LEVEL = 'INFO'
-CLI_LOG_OUTPUT_PATH = '/var/log/cache-db/cli.log'
+from pydantic import BaseModel, computed_field
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+if t.TYPE_CHECKING:
+    from pydantic.fields import FieldInfo
+
+
+class Settings(BaseSettings):
+    """Settings for application with validation."""
+
+    CACHE_KEY_SUFFIX: str = "_gakunin_groups"
+    """Cache key suffix of group information in Redis."""
+
+    CACHE_TTL: t.Annotated[int, "seconds"] = 86400
+    """Cache time-to-live of group information in Redis.
+
+    If it specified less than 0, it will be considered as no expiration.
+    """
+
+    MAP_GROUPS_API_ENDPOINT: str
+    """Map groups API endpoint."""
+
+    REDIS_TYPE: t.Literal["redis", "sentinel"] = "redis"
+    """Redis type to use. `redis` or `sentinel` is allowed."""
+
+    REDIS_HOST: str = "localhost"
+    """Redis service host name."""
+
+    REDIS_PORT: int = 6379
+    """Redis service port number."""
+
+    REDIS_DB_INDEX: int = 4
+    """Redis DB index to use for caching group information."""
+
+    @computed_field
+    @property
+    def REDIS_URL(self) -> str:  # noqa: N802
+        """Redis URL for caching group information."""
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB_INDEX}"
+
+    REDIS_SENTINEL_MASTER: str | None = None
+    """Server name of the Redis sentinel master."""
+
+    SENTINELS: list[Sentinel] | None = None
+    """A list of Redis sentinel configurations."""
+
+    @computed_field
+    @property
+    def REDIS_SENTINELS(self) -> list[tuple[str, str]]:  # noqa: N802
+        """A list of Redis sentinel host names and their ports."""
+        return (
+            [(sentinel.host, str(sentinel.port)) for sentinel in self.SENTINELS]
+            if self.SENTINELS
+            else []
+        )
+
+    model_config = SettingsConfigDict(
+        extra="forbid",
+        frozen=True,
+    )
+
+    toml_path: Path | None = None
+    """Path to the TOML configuration file."""
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],  # noqa: ARG003
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Customize settings sources.
+
+        Returns:
+            A tuple of customized settings sources sorted by priority.
+
+        """
+        toml_path = init_settings().get("toml_path")
+        if toml_path is None:
+            toml_path = Path("config.toml")
+        elif isinstance(toml_path, str):
+            toml_path = Path(toml_path)
+        toml_settings = TomlConfigSettingsSource(cls, toml_path)
+
+        return (
+            toml_settings,
+            env_settings,
+            dotenv_settings,
+            init_settings,
+            file_secret_settings,
+        )
+
+
+class Sentinel(BaseModel):
+    """Redis sentinel configuration."""
+
+    host: str
+    """Sentinel host name."""
+
+    port: int
+    """Sentinel port number."""
+
+
+class TomlConfigSettingsSource(PydanticBaseSettingsSource):
+    """TOML configuration settings source."""
+
+    def __init__(self, settings_cls: type[BaseSettings], toml_path: Path) -> None:
+        """Initialize TOML config settings source."""
+        super().__init__(settings_cls)
+        self.toml_path = toml_path
+
+    def get_field_value(
+        self,
+        field: FieldInfo,  # noqa: ARG002
+        field_name: str,
+    ) -> tuple[t.Any, str, bool]:
+        """Get the value of a field from the TOML file."""  # noqa: DOC201
+        data = getattr(self, "_data_cache", None)
+
+        if data is None:
+            data = self()
+            self._data_cache = data
+
+        if field_name in data:
+            return data[field_name], self.toml_path.as_posix(), True
+
+        return None, self.toml_path.as_posix(), False
+
+    def __call__(self) -> dict[str, t.Any]:
+        """Load settings from TOML file."""  # noqa: DOC201
+        if not self.toml_path.exists():
+            click.echo("[WARN] Settings file not found. Default values will be used.")
+            click.echo(f"[INFO] Looking for settings file at: {self.toml_path}")
+            return {}
+
+        with self.toml_path.open("rb") as f:
+            data = tomllib.load(f)
+
+        return {k.upper(): v for k, v in data.items()}
+
+    def __repr__(self) -> str:
+        """Representation."""  # noqa: DOC201
+        return f"TomlConfigSettingsSource(toml_path={self.toml_path})"
+
+
+config = Settings()  # pyright: ignore[reportCallIssue]
