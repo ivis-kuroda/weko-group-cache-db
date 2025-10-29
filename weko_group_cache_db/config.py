@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     MAP_GROUPS_API_ENDPOINT: str
     """Map groups API endpoint."""
 
+    REQUEST_TIMEOUT: t.Annotated[int, "seconds"] = 20
+    """Request timeout when connecting to mAP API."""
+
     REDIS_TYPE: t.Literal["redis", "sentinel"] = "redis"
     """Redis type to use. `redis` or `sentinel` is allowed."""
 

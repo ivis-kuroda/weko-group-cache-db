@@ -4,9 +4,10 @@ from urllib.parse import urljoin
 
 import requests
 
-from . import config
 from . import messages
-from .redis_conn import RedisConnection
+from .config import config
+from .redis import connection
+
 
 def set_groups(fqdn):
     """Get groups from Gakunin API and set to Redis

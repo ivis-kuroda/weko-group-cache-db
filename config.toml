@@ -10,6 +10,8 @@
 # === Map groups API endpoint. ===
 map_groups_api_endpoint = "https://sample.gakunin.jp/api/groups/"
 
+# === Request timeout when connecting to mAP API. ===
+# request_timeout = 20
 
 # === Redis type to use. `redis` or `sentinel` is allowed. ===
 # redis_type = "redis"
