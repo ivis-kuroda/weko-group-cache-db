@@ -1,80 +1,120 @@
-import os
-from datetime import datetime, timezone
+#
+# Copyright (C) 2025 National Institute of Informatics.
+#
+
+"""Utils module for weko-group-cache-db."""
+
+import typing as t
+
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 import requests
 
-from . import messages
+from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
+
 from .config import config
+from .loader import Institution, load_institutions
+from .logger import console, logger
 from .redis import connection
 
+if t.TYPE_CHECKING:
+    from redis import Redis
 
-def set_groups(fqdn):
-    """Get groups from Gakunin API and set to Redis
-    
+
+def fetch_all(file_path: str):
+    """Fetch and cache groups for all institutions.
+
     Arguments:
-        fqdn(str): fqdn of the target sp
+        file_path (str): Path to the TOML file containing institution data.
+
     """
-    # get group_id_list from gakunin
-    groups = get_groups_from_gakunin(fqdn)
-    group_id_list = []
-    for group in groups:
-        group_id = group['id'].split('/')[-1]
-        group_id_list.append(group_id)
+    try:
+        store = connection()
+    except ValueError, ConnectionError:
+        console.print_exception()
+        return
 
-    # replace special characters
-    fqdn = fqdn.replace('.', '_').replace('-', '_')
+    institutions = load_institutions(file_path)
 
-    # set groups to redis
-    set_groups_to_redis(fqdn, group_id_list)
+    with Progress(
+        SpinnerColumn(),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task(
+            "Fetching and caching groups for all institutions", total=len(institutions)
+        )
 
-def get_groups_from_gakunin(fqdn):
-    """Get groups from Gakunin API
-    
+        for institution in institutions:
+            try:
+                group_ids = fetch_map_groups(institution)
+                set_groups_to_redis(institution.fqdn, group_ids, store=store)
+
+                progress.log(f"{len(group_ids)} groups cached for {institution.fqdn}.")
+            except requests.RequestException:
+                console.print_exception()
+            finally:
+                progress.update(task, advance=1)
+
+
+def fetch_map_groups(institution: Institution) -> list[str]:
+    """Fetch and cache groups for the given institution.
+
     Arguments:
-        fqdn(str): fqdn of the target sp
-        
+        institution (Institution): Institution object.
+
     Returns:
-        list: list of groups
-    """
-    target_sp = None
-    # get sp connection details
-    for value in config.SP_AUTHORIZATION_DICT.values():
-        if value['org_sp_fqdn'] == fqdn:
-            target_sp = value
-            break
-    if not target_sp:
-        raise Exception(messages.FQDN_NOT_FOUND.format(fqdn))
-    if not target_sp.get('sp_connector_id'):
-        raise Exception(messages.SP_CONNECTOR_ID_NOT_FOUND.format(fqdn))
-    if not target_sp.get('tls_client_cert'):
-        raise Exception(messages.TLS_CLIENT_CERT_NOT_FOUND.format(fqdn))
-    if not os.path.exists(target_sp['tls_client_cert']):
-        raise Exception(messages.TLS_CLIENT_CERT_FILE_NOT_FOUND.format(target_sp['tls_client_cert']))
-    if not target_sp.get('tls_client_key'):
-        raise Exception(messages.TLS_CLIENT_KEY_NOT_FOUND.format(fqdn))
-    if not os.path.exists(target_sp['tls_client_key']):
-        raise Exception(messages.TLS_CLIENT_KEY_FILE_NOT_FOUND.format(target_sp['tls_client_key']))
-    target_url = urljoin(config.GROUPS_API_URL, target_sp['sp_connector_id'])
-    # get groups what connected to the target sp
-    response = requests.get(target_url, cert=(target_sp['tls_client_cert'], target_sp['tls_client_key']))
-    response.raise_for_status()
-    return response.json()['entry']
+        list[str]: List of group IDs.
 
-def set_groups_to_redis(fqdn, group_id_list):
-    """Set groups to redis
-    
+    Raises:
+        RequestException: If the HTTP request fails.
+
+    """
+    fqdn = institution.fqdn
+
+    endpoint = urljoin(config.MAP_GROUPS_API_ENDPOINT, institution.sp_connector_id)
+    try:
+        response = requests.get(
+            endpoint,
+            cert=(institution.client_cert_path, institution.client_key_path),
+            timeout=config.REQUEST_TIMEOUT,
+        )
+        response.raise_for_status()
+        group_entries = response.json().get("entry", [])
+    except requests.RequestException:
+        logger.error(
+            "Failed to fetch groups from Gakunin API for institution: %s", fqdn
+        )
+        raise
+
+    group_ids: list[str] = [
+        group["id"].split("/")[-1] for group in group_entries if "id" in group
+    ]
+
+    return group_ids
+
+
+def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None = None):
+    """Set groups to redis.
+
     Arguments:
         fqdn(str): fqdn of the target sp
-        group_id_list(list): list of group ids
+        group_ids(list[str]): list of group ids
+        store(Redis | None):
+            Redis store object. If None, a new connection will be established.
+
     """
-    # get redis connection
-    redis_connection = RedisConnection()
-    store = redis_connection.connection(config.GROUPS_DB)
-    # create redis key
-    redis_key = fqdn + config.GAKUNIN_GROUP_SUFFIX
-    # set new group list and expire time
-    updated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    store.hset(redis_key, mapping={"updated_at": updated_at, "groups": ",".join(group_id_list)})
-    if config.GROUPS_TTL >= 0:
-        store.expire(redis_key, config.GROUPS_TTL)
+    transformed_fqdn = fqdn.replace(".", "_").replace("-", "_")
+    redis_key = transformed_fqdn + config.CACHE_KEY_SUFFIX
+    updated_at = datetime.now(UTC).isoformat(timespec="seconds")
+
+    if store is None:
+        store = connection()
+
+    store.hset(
+        redis_key, mapping={"updated_at": updated_at, "groups": ",".join(group_ids)}
+    )
+    if config.CACHE_TTL >= 0:
+        store.expire(redis_key, config.CACHE_TTL)
