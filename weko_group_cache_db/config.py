@@ -25,6 +25,12 @@ if t.TYPE_CHECKING:
 class Settings(BaseSettings):
     """Settings for application with validation."""
 
+    LOG_LEVEL: t.Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    """Logging level.
+
+    Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+    """
+
     CACHE_KEY_SUFFIX: str = "_gakunin_groups"
     """Cache key suffix of group information in Redis."""
 
@@ -77,6 +83,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         extra="forbid",
         frozen=True,
+        validate_default=True,
     )
 
     toml_path: Path | None = None

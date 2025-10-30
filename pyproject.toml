@@ -5,6 +5,7 @@ description = "CLI tool for caching mAP group information on JAIRO Cloud."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "inflect>=7.5.0",
     "pydantic-settings>=2.11.0",
     "redis>=7.0.0",
     "requests>=2.32.5",
@@ -47,6 +48,7 @@ ignore = [
   "D213",
   "COM812",
   "ANN201",
+  "TRY400",
 ]
 preview = true
 select = ["ALL"]

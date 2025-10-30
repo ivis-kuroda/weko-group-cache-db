@@ -1,5 +1,9 @@
 # Configuration for weko-group-cache-db command.
 
+# === Logging level. ===
+#   Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+# log_level = "INFO"
+
 # === Cache key suffix of group information in Redis. ===
 # cache_key_suffix = "_gakunin_groups"
 
