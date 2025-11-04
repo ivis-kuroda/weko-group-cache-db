@@ -39,7 +39,10 @@ def load_institutions(toml_path: str | Path) -> list[Institution]:
         try:
             with toml_path.open("rb") as f:
                 toml_data = tomllib.load(f)
-        except (TOMLDecodeError, ValueError):
+        except FileNotFoundError:
+            logger.error("TOML file not found: %s", toml_path)
+            return []
+        except TOMLDecodeError, ValueError:
             logger.error("Failed to load TOML file: %s", toml_path)
             raise
 
@@ -118,6 +121,7 @@ class Institution(BaseModel):
     """FQDN of the institution."""
 
     sp_connector_id: str = Field(..., validation_alias="spid")
+    """Service Provider Connector ID of the institution."""
 
     client_cert_path: str = Field(..., validation_alias="cert")
     """Path to TLS client certificate file."""

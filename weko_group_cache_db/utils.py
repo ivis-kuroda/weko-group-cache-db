@@ -11,6 +11,7 @@ from urllib.parse import urljoin
 
 import requests
 
+from redis.exceptions import ConnectionError as RedisConnectionError
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
 from .config import config
@@ -31,7 +32,7 @@ def fetch_all(file_path: str):
     """
     try:
         store = connection()
-    except ValueError, ConnectionError:
+    except ValueError, RedisConnectionError:
         console.print_exception()
         return
 
@@ -116,5 +117,6 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
     store.hset(
         redis_key, mapping={"updated_at": updated_at, "groups": ",".join(group_ids)}
     )
+    store.persist(redis_key)
     if config.CACHE_TTL >= 0:
         store.expire(redis_key, config.CACHE_TTL)

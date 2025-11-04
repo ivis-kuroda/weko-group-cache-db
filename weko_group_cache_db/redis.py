@@ -4,11 +4,11 @@
 
 """Redis connection module for weko-group-cache-db."""
 
-import rich_click as click
-
 from redis import Redis, sentinel
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from .config import config
+from .logger import logger
 
 
 def connection() -> Redis:
@@ -24,15 +24,21 @@ def connection() -> Redis:
     """
     try:
         if config.REDIS_TYPE == "redis":
-            return _redis_connection()
-
-        return _sentinel_connection()
+            store = _redis_connection()
+            store.ping()
+            logger.info("Successfully connected to Redis.")
+        else:
+            store = _sentinel_connection()
+            store.ping()
+            logger.info("Successfully connected to Redis Sentinel.")
     except ValueError:
-        click.echo("Failed to connect to Redis. Invalid configuration.")
+        logger.error("Failed to connect to Redis. Invalid configuration.")
         raise
-    except ConnectionError:
-        click.echo("Failed to connect to Redis. Something went wrong on Redis.")
+    except RedisConnectionError:
+        logger.error("Failed to connect to Redis. Something went wrong on Redis.")
         raise
+
+    return store
 
 
 def _redis_connection() -> Redis:
