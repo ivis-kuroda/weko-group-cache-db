@@ -27,6 +27,9 @@ if t.TYPE_CHECKING:
 class Settings(BaseSettings):
     """Settings for application with validation."""
 
+    DEVELOPMENT: bool = False
+    """Environment flag for development."""
+
     LOG_LEVEL: t.Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     """Logging level.
 
@@ -47,6 +50,12 @@ class Settings(BaseSettings):
 
     REQUEST_TIMEOUT: t.Annotated[int, "seconds"] = 20
     """Request timeout when connecting to mAP API."""
+
+    REQUEST_INTERVAL: t.Annotated[int, "seconds"] = 5
+    """Request interval when fetching groups from mAP API."""
+
+    REQUEST_RETRIES: t.Annotated[int, "times"] = 3
+    """Request retries when failed to fetch groups from mAP API."""
 
     REDIS_TYPE: t.Literal["redis", "sentinel"] = "redis"
     """Redis type to use. `redis` or `sentinel` is allowed."""

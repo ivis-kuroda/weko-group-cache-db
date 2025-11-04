@@ -5,11 +5,13 @@
 """Logger module for weko-group-cache-db."""
 
 import logging
+import traceback
 import typing as t
 
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.traceback import install
 from werkzeug.local import LocalProxy
 
 from .config import config
@@ -60,6 +62,10 @@ def setup_logger(name: str = __name__) -> logging.Logger:
     formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    if config.DEVELOPMENT:
+        install(console=console, extra_lines=2)
+        traceback.print_exc = lambda: console.print_exception(extra_lines=2)
 
     return logger
 

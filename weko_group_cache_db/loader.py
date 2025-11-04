@@ -5,6 +5,7 @@
 """File loader module for weko-group-cache-db."""
 
 import tomllib
+import traceback
 
 from pathlib import Path
 from tomllib import TOMLDecodeError
@@ -75,7 +76,7 @@ def load_institutions(toml_path: str | Path) -> list[Institution]:
                 progress.log(
                     f"Failed to load {ordinal} institution '{institution_fqdn}'.",
                 )
-                console.print_exception()
+                traceback.print_exc()
                 continue
             else:
                 if not check_existence_file(institution):

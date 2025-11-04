@@ -1,5 +1,8 @@
 # Configuration for weko-group-cache-db command.
 
+# === Environment flag for development. ===
+# development = false
+
 # === Logging level. ===
 #   Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 # log_level = "INFO"
@@ -14,8 +17,14 @@
 # === Map groups API endpoint. ===
 map_groups_api_endpoint = "https://sample.gakunin.jp/api/groups/"
 
-# === Request timeout when connecting to mAP API. ===
+# === Request timeout (in seconds) when connecting to mAP API. ===
 # request_timeout = 20
+
+# === Request interval (in seconds) between mAP API requests. ===
+# request_interval = 5
+
+# === Request retries when failed to fetch groups from mAP API. ===
+# request_retries = 3
 
 # === Redis type to use. `redis` or `sentinel` is allowed. ===
 # redis_type = "redis"

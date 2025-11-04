@@ -4,11 +4,12 @@
 
 """CLI module for weko-group-cache-db."""
 
+import click as click_
 import rich_click as click
 
 from .config import setup_config
 from .logger import setup_logger
-from .utils import fetch_all, fetch_one
+from .utils import fetch_all
 
 click.rich_click.SHOW_ARGUMENTS = True
 
@@ -41,7 +42,15 @@ def main():
     help="Specify the path to the configuration TOML file.",
 )
 def run(file_path: str, config_path: str):
-    """Fetch and cache groups for all institutions."""
+    """Fetch and cache groups for all institutions.
+
+    Raises:
+        Exit: If fetching or caching fails even for one institution.
+
+    """
     setup_config(config_path)
     setup_logger(__package__)  # pyright: ignore[reportArgumentType]
-    fetch_all(file_path)
+    code = fetch_all(file_path)
+
+    if code != 0:
+        raise click_.exceptions.Exit(code)

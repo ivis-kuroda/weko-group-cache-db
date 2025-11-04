@@ -4,14 +4,15 @@
 
 """Utils module for weko-group-cache-db."""
 
+import traceback
 import typing as t
 
 from datetime import UTC, datetime
 from urllib.parse import urljoin
 
+import redis
 import requests
 
-from redis.exceptions import ConnectionError as RedisConnectionError
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
 from .config import config
@@ -23,20 +24,19 @@ if t.TYPE_CHECKING:
     from redis import Redis
 
 
-def fetch_all(file_path: str):
+def fetch_all(file_path: str) -> int:
     """Fetch and cache groups for all institutions.
 
     Arguments:
         file_path (str): Path to the TOML file containing institution data.
 
-    """
-    try:
-        store = connection()
-    except ValueError, RedisConnectionError:
-        console.print_exception()
-        return
+    Returns:
+        int: Exit code (0 for success, 1 for failure).
 
+    """
+    store = connection()
     institutions = load_institutions(file_path)
+    code = 0
 
     with Progress(
         SpinnerColumn(),
@@ -55,9 +55,19 @@ def fetch_all(file_path: str):
 
                 progress.log(f"{len(group_ids)} groups cached for {institution.fqdn}.")
             except requests.RequestException:
-                console.print_exception()
+                traceback.print_exc()
+                code = 1
+            except redis.RedisError:
+                logger.error(
+                    "Failed to cache groups to Redis for institution: %s",
+                    institution.fqdn,
+                )
+                traceback.print_exc()
+                code = 1
             finally:
                 progress.update(task, advance=1)
+
+    return code
 
 
 def fetch_map_groups(institution: Institution) -> list[str]:
