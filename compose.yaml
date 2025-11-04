@@ -6,7 +6,7 @@ services:
     restart: "always"
     build:
       context: .
-      target: development
+      target: production
     volumes:
       - .:/code
       - /code/.venv

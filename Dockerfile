@@ -21,17 +21,9 @@ COPY --chown=${USERNAME}:${GROUPNAME} . .
 
 RUN echo "source /code/.venv/bin/activate" >> /home/pyuser/.bashrc
 
-# === Development image ===
-FROM base AS development
-RUN uv sync --frozen && \
-    uv pip install -e .
-
-CMD ["sleep", "infinity"]
-
-
 # === Production image ===
 FROM base AS production
-RUN uv venv && \
+RUN uv sync --frozen && \
     uv pip install .
 
 CMD ["sleep", "infinity"]

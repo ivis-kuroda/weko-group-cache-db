@@ -1,15 +1,25 @@
 {
   "name": "weko-group-cache-db Dev Container",
-  "dockerComposeFile": "../compose.yaml",
-  "service": "app",
-  "workspaceFolder": "/code",
+  "dockerComposeFile": [
+    "../compose.yaml",
+    "dev.compose.yaml"
+  ],
+  "runServices": ["dev", "redis"],
+  "service": "dev",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+
   "features": {
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "latest",
-      "ppa": true
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.14"
     }
   },
-  "remoteUser": "pyuser",
+  "remoteEnv": {
+    "VIRTUAL_ENV": "/home/vscode/.venv",
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+  },
+  "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh vscode",
+
   "customizations": {
     "vscode": {
       "settings": {
@@ -23,23 +33,19 @@
             "source.organizeImports": "explicit"
           },
           "editor.defaultFormatter": "charliermarsh.ruff"
-        },
-        "python.testing.pytestArgs": [
-          "tests"
-        ],
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
-        "python.testing.autoTestDiscoverOnSaveEnabled": true
+        }
       },
       "extensions": [
         "visualstudioexptteam.vscodeintellicode",
         "ms-python.python",
         "ms-python.vscode-pylance",
-        "mhutchie.git-graph",
-        "eamodio.gitlens",
-        "editorconfig.editorconfig",
         "tamasfe.even-better-toml",
-        "charliermarsh.ruff"
+
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+
+        "mhutchie.git-graph",
+        "eamodio.gitlens"
       ]
     }
   }
