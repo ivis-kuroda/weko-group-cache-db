@@ -70,6 +70,42 @@ def fetch_all(file_path: str) -> int:
     return code
 
 
+def fetch_one(file_path: str, fqdn: str):
+    """Fetch and cache groups for a specific institution.
+
+    Arguments:
+        file_path (Path): Path to the TOML file containing institution data.
+        fqdn (str): FQDN of the target institution.
+
+    Raises:
+        RequestException: If the HTTP request fails.
+        RedisError: If caching to Redis fails.
+
+    """
+    store = connection()
+    institutions = load_institutions(file_path)
+
+    target_institution = next(
+        (inst for inst in institutions if inst.fqdn == fqdn), None
+    )
+
+    if target_institution is None:
+        logger.error("Institution with FQDN %s not found.", fqdn)
+        return
+
+    with console.status(f"Fetching and caching groups for institution: {fqdn}"):
+        try:
+            group_ids = fetch_map_groups(target_institution)
+            set_groups_to_redis(target_institution.fqdn, group_ids, store=store)
+        except requests.RequestException:
+            raise
+        except redis.RedisError:
+            logger.error("Failed to cache groups to Redis for institution: %s", fqdn)
+            raise
+        else:
+            logger.info("Successfully cached %d groups for %s.", len(group_ids), fqdn)
+
+
 def fetch_map_groups(institution: Institution) -> list[str]:
     """Fetch and cache groups for the given institution.
 

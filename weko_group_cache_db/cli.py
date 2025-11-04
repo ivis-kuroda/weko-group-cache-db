@@ -9,7 +9,7 @@ import rich_click as click
 
 from .config import setup_config
 from .logger import setup_logger
-from .utils import fetch_all
+from .utils import fetch_all, fetch_one
 
 click.rich_click.SHOW_ARGUMENTS = True
 
@@ -54,3 +54,35 @@ def run(file_path: str, config_path: str):
 
     if code != 0:
         raise click_.exceptions.Exit(code)
+
+
+@main.command(context_settings={"show_default": True})
+@click.argument(
+    "fqdn",
+    type=str,
+    required=True,
+    nargs=1,
+    metavar="FQDN",
+    help="Specify the FQDN of the institution to fetch and cache groups for.",
+)
+@click.option(
+    "--file-path",
+    "-f",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    required=False,
+    default=DEFAULT_INSTITUTIONS_PATH,
+    help="Specify the path to the TOML file containing institution data.",
+)
+@click.option(
+    "--config-path",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    required=False,
+    default=DEFAULT_CONFIG_PATH,
+    help="Specify the path to the configuration TOML file.",
+)
+def one(fqdn: str, file_path: str, config_path: str):
+    """Fetch and cache groups for a single institution."""
+    setup_config(config_path)
+    setup_logger(__package__)  # pyright: ignore[reportArgumentType]
+    fetch_one(file_path, fqdn)
