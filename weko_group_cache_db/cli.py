@@ -7,7 +7,7 @@
 import rich_click as click
 
 from .config import setup_config
-from .logger import get_logger
+from .logger import setup_logger
 from .utils import fetch_all, fetch_one
 
 click.rich_click.SHOW_ARGUMENTS = True
@@ -43,5 +43,5 @@ def main():
 def run(file_path: str, config_path: str):
     """Fetch and cache groups for all institutions."""
     setup_config(config_path)
-    get_logger(__package__)  # pyright: ignore[reportArgumentType]
+    setup_logger(__package__)  # pyright: ignore[reportArgumentType]
     fetch_all(file_path)

@@ -10,11 +10,12 @@ import typing as t
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
+from werkzeug.local import LocalProxy
 
 from .config import config
 
 if t.TYPE_CHECKING:
-    from datetime import datetime
+    from datetime import datetime  # pragma: no cover
 
 
 def _log_time_format(datetime: datetime) -> Text:
@@ -36,7 +37,7 @@ console = Console(
 )
 
 
-def get_logger(name: str = __name__) -> logging.Logger:
+def setup_logger(name: str = __name__) -> logging.Logger:
     """Create and return a logger with the specified name.
 
     Args:
@@ -63,4 +64,4 @@ def get_logger(name: str = __name__) -> logging.Logger:
     return logger
 
 
-logger = get_logger(__package__)  # pyright: ignore[reportArgumentType]
+logger = t.cast(logging.Logger, LocalProxy(lambda: logging.getLogger(__package__)))
