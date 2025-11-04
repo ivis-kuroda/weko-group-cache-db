@@ -4,27 +4,44 @@
 
 """CLI module for weko-group-cache-db."""
 
-import click
+import rich_click as click
 
-from .logger import logger
-from .utils import fetch_all
+from .config import setup_config
+from .logger import get_logger
+from .utils import fetch_all, fetch_one
+
+click.rich_click.SHOW_ARGUMENTS = True
+
+
+DEFAULT_CONFIG_PATH = "config.toml"
+DEFAULT_INSTITUTIONS_PATH = "institutions.toml"
 
 
 @click.group()
+@click.rich_config({"theme": "nord-modern"})
 def main():
     """Run the command line interface for weko-group-cache-db."""
-    logger.info("weko-group-cache-db CLI")
 
 
-@main.command()
+@main.command(context_settings={"show_default": True})
 @click.option(
     "--file-path",
     "-f",
     type=click.Path(exists=True, dir_okay=False, path_type=str),
     required=False,
-    default="institutions.toml",
+    default=DEFAULT_INSTITUTIONS_PATH,
     help="Specify the path to the TOML file containing institution data.",
 )
-def run(file_path: str):
+@click.option(
+    "--config-path",
+    "-c",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    required=False,
+    default=DEFAULT_CONFIG_PATH,
+    help="Specify the path to the configuration TOML file.",
+)
+def run(file_path: str, config_path: str):
     """Fetch and cache groups for all institutions."""
+    setup_config(config_path)
+    get_logger(__package__)  # pyright: ignore[reportArgumentType]
     fetch_all(file_path)

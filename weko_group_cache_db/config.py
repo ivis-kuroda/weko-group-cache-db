@@ -7,6 +7,7 @@
 import tomllib
 import typing as t
 
+from contextvars import ContextVar
 from pathlib import Path
 
 import rich_click as click
@@ -17,9 +18,10 @@ from pydantic_settings import (
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+from werkzeug.local import LocalProxy
 
 if t.TYPE_CHECKING:
-    from pydantic.fields import FieldInfo
+    from pydantic.fields import FieldInfo  # pragma: no cover
 
 
 class Settings(BaseSettings):
@@ -92,7 +94,7 @@ class Settings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: type[BaseSettings],  # noqa: ARG003
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
@@ -104,18 +106,26 @@ class Settings(BaseSettings):
             A tuple of customized settings sources sorted by priority.
 
         """
-        toml_path = init_settings().get("toml_path")
+        toml_path: str | Path | None = init_settings().get("toml_path")
+
         if toml_path is None:
-            toml_path = Path("config.toml")
-        elif isinstance(toml_path, str):
+            return super().settings_customise_sources(
+                settings_cls,
+                init_settings,
+                env_settings,
+                dotenv_settings,
+                file_secret_settings,
+            )
+
+        if isinstance(toml_path, str):
             toml_path = Path(toml_path)
         toml_settings = TomlConfigSettingsSource(cls, toml_path)
 
         return (
+            init_settings,
             toml_settings,
             env_settings,
             dotenv_settings,
-            init_settings,
             file_secret_settings,
         )
 
@@ -172,4 +182,13 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
         return f"TomlConfigSettingsSource(toml_path={self.toml_path})"
 
 
-config = Settings()  # pyright: ignore[reportCallIssue]
+_no_config_msg = "Config has not been initialized."
+_current_config: ContextVar[Settings] = ContextVar("current_config")
+
+
+def setup_config(toml_path: str) -> None:
+    """Initialize the global config instance."""
+    _current_config.set(Settings(toml_path=toml_path))  # pyright: ignore[reportCallIssue]
+
+
+config = t.cast(Settings, LocalProxy(_current_config, unbound_message=_no_config_msg))
