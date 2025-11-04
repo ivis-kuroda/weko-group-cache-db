@@ -1,1 +1,21 @@
 line-length = 120
+target-version = "py314"
+ignore = [
+  "D100",
+  "D103",
+  "S101",
+  "ANN001",
+  "ANN201",
+  "ANN401",
+  "TC006",
+  "DTZ005",
+  "PLC2701",
+  "SLF001",
+]
+preview = true
+select = ["ALL"]
+
+[lint.isort]
+combine-as-imports = true
+known-first-party = ["weko_group_cache_db"]
+lines-between-types = 1
