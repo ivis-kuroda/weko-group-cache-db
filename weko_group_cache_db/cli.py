@@ -10,8 +10,8 @@ import click as click_
 import rich_click as click
 
 from .config import setup_config
+from .groups import fetch_all, fetch_one
 from .logger import logger, setup_logger
-from .utils import fetch_all, fetch_one
 
 click.rich_click.SHOW_ARGUMENTS = True
 
