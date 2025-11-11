@@ -7,6 +7,9 @@
 #   Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
 # log_level = "INFO"
 
+# === Prefix for SP connector ID. ===
+# sp_connector_id_prefix = "jc_"
+
 # === Cache key suffix of group information in Redis. ===
 # cache_key_suffix = "_gakunin_groups"
 

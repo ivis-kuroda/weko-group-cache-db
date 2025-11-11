@@ -16,7 +16,7 @@ import requests
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
 from .config import config
-from .loader import Institution, load_institutions
+from .loader import Institution, InstitutionSource, load_institutions
 from .logger import console, logger
 from .redis import connection
 
@@ -24,18 +24,21 @@ if t.TYPE_CHECKING:
     from redis import Redis
 
 
-def fetch_all(file_path: str) -> int:
+def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
     """Fetch and cache groups for all institutions.
 
     Arguments:
-        file_path (str): Path to the TOML file containing institution data.
+        kwargs (InstitutionSource):
+            - toml_path (str | Path): Path to the TOML file.
+            - directory_path (str | Path): Path to the directory containing TOML files.
+            - fqdn_list_file (str | Path): Path to the file containing FQDN list.
 
     Returns:
         int: Exit code (0 for success, 1 for failure).
 
     """
     store = connection()
-    institutions = load_institutions(file_path)
+    institutions = load_institutions(**kwargs)
     code = 0
 
     with Progress(
@@ -70,12 +73,15 @@ def fetch_all(file_path: str) -> int:
     return code
 
 
-def fetch_one(file_path: str, fqdn: str):
+def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
     """Fetch and cache groups for a specific institution.
 
     Arguments:
-        file_path (Path): Path to the TOML file containing institution data.
         fqdn (str): FQDN of the target institution.
+        kwargs (InstitutionSource):
+            - toml_path (str | Path): Path to the TOML file.
+            - directory_path (str | Path): Path to the directory containing TOML files.
+            - fqdn_list_file (str | Path): Path to the file containing FQDN list.
 
     Raises:
         RequestException: If the HTTP request fails.
@@ -83,7 +89,7 @@ def fetch_one(file_path: str, fqdn: str):
 
     """
     store = connection()
-    institutions = load_institutions(file_path)
+    institutions = load_institutions(**kwargs)
 
     target_institution = next(
         (inst for inst in institutions if inst.fqdn == fqdn), None

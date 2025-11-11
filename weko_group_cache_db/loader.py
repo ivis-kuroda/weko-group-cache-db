@@ -6,6 +6,7 @@
 
 import tomllib
 import traceback
+import typing as t
 
 from pathlib import Path
 from tomllib import TOMLDecodeError
@@ -19,7 +20,41 @@ from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 from .logger import console, logger
 
 
-def load_institutions(toml_path: str | Path) -> list[Institution]:
+class InstitutionSource(t.TypedDict):
+    """Source configuration for loading institution information."""
+
+    toml_path: t.NotRequired[str | Path]
+    """Path to the TOML file."""
+
+    directory_path: t.NotRequired[str | Path]
+    """Path to the directory containing TOML files."""
+
+    fqdn_list_file: t.NotRequired[str | Path]
+    """Path to the file containing FQDN list."""
+
+
+def load_institutions(**kwargs: t.Unpack[InstitutionSource]) -> list[Institution]:
+    """Load institution information from the configured source.
+
+    Arguments:
+        kwargs (InstitutionSource):
+            Source configuration for loading institution information.
+
+    Returns:
+        list[Institution]: List of Institution objects.
+
+    """
+    if "toml_path" in kwargs:
+        return load_institutions_from_toml(kwargs["toml_path"])
+    if "directory_path" in kwargs and "fqdn_list_file" in kwargs:
+        return load_institutions_from_directory(
+            kwargs["directory_path"], kwargs["fqdn_list_file"]
+        )
+    logger.error("Invalid institution source configuration.")
+    return []
+
+
+def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
     """Load institution information from TOML file.
 
     Arguments:
@@ -95,6 +130,93 @@ def load_institutions(toml_path: str | Path) -> list[Institution]:
     return institutions
 
 
+SP_CONNECTOR_ID_PREFIX = "jc_"
+"""Prefix for SP ID."""
+
+CRT_FILE_NAME = "server.crt"
+"""File name for TLS client certificate in directory source."""
+
+KEY_FILE_NAME = "server.key"
+"""File name for TLS client key in directory source."""
+
+
+def load_institutions_from_directory(
+    directory_path: str | Path, fqdn_list_file: str | Path
+) -> list[Institution]:
+    """Load institution information from the configured directory.
+
+    Arguments:
+        directory_path (str | Path):
+            Path to the directory containing TOML files.
+        fqdn_list_file (str | Path):
+            Path to the file containing FQDN list
+
+    Returns:
+        list[Institution]: List of Institution objects.
+
+    """
+    if isinstance(directory_path, str):
+        directory_path = Path(directory_path)
+    if isinstance(fqdn_list_file, str):
+        fqdn_list_file = Path(fqdn_list_file)
+
+    with fqdn_list_file.open("r", encoding="utf-8") as f:
+        fqdn_set = {
+            L.split(" ")[0]
+            for line in f
+            if (L := line.strip()) and not L.startswith("#")
+        }
+
+    p = inflect.engine()
+    institutions: list[Institution] = []
+    with Progress(
+        SpinnerColumn(),
+        *Progress.get_default_columns(),
+        TimeElapsedColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task(
+            "Loading institutions from directory...", total=len(fqdn_set)
+        )
+        for index, fqdn in enumerate(fqdn_set):
+            ordinal = p.ordinal(index + 1)  # pyright: ignore[reportArgumentType]
+
+            sp_connector_id = (
+                f"{SP_CONNECTOR_ID_PREFIX}{fqdn.replace('.', '_').replace('-', '_')}"
+            )
+            client_cert_path = directory_path / fqdn / CRT_FILE_NAME
+            client_key_path = directory_path / fqdn / KEY_FILE_NAME
+
+            try:
+                institution = Institution(
+                    name=None,
+                    fqdn=fqdn,
+                    sp_connector_id=sp_connector_id,
+                    client_cert_path=str(client_cert_path),
+                    client_key_path=str(client_key_path),
+                )
+            except ValidationError:
+                progress.log(
+                    f"Failed to load {ordinal} institution '{fqdn}'.",
+                )
+                traceback.print_exc()
+                continue
+            else:
+                if not check_existence_file(institution):
+                    logger.warning(
+                        f"Skip {ordinal} institution '{institution.fqdn}' "
+                        "due to missing TLS client cert/key files.",
+                    )
+                    continue
+                institutions.append(institution)
+            finally:
+                progress.update(task, advance=1)
+
+    logger.info("%d institutions loaded successfully.", len(institutions))
+
+    return institutions
+
+
 def check_existence_file(institution: Institution) -> bool:
     """Check existence of TLS client cert and key files.
 
@@ -108,6 +230,7 @@ def check_existence_file(institution: Institution) -> bool:
     """
     cert_path = Path(institution.client_cert_path)
     key_path = Path(institution.client_key_path)
+    logger.info(f"cert_path: {cert_path}, key_path: {key_path}")
 
     return cert_path.exists() and key_path.exists()
 

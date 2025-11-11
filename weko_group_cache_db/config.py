@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
     """
 
+    SP_CONNECTOR_ID_PREFIX: str = "jc_"
+    """Prefix for SP connector ID."""
+
     CACHE_KEY_SUFFIX: str = "_gakunin_groups"
     """Cache key suffix of group information in Redis."""
 

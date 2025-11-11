@@ -4,11 +4,13 @@
 
 """CLI module for weko-group-cache-db."""
 
+import operator
+
 import click as click_
 import rich_click as click
 
 from .config import setup_config
-from .logger import setup_logger
+from .logger import logger, setup_logger
 from .utils import fetch_all, fetch_one
 
 click.rich_click.SHOW_ARGUMENTS = True
@@ -30,8 +32,24 @@ def main():
     "-f",
     type=click.Path(exists=True, dir_okay=False, path_type=str),
     required=False,
-    default=DEFAULT_INSTITUTIONS_PATH,
+    default=None,
     help="Specify the path to the TOML file containing institution data.",
+)
+@click.option(
+    "--directory-path",
+    "-d",
+    type=click.Path(exists=True, file_okay=False, path_type=str),
+    required=False,
+    default=None,
+    help="Specify the path to the directory containing TOML files.",
+)
+@click.option(
+    "--fqdn-list-file",
+    "-l",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    required=False,
+    default=None,
+    help="Specify the path to the file containing FQDN list.",
 )
 @click.option(
     "--config-path",
@@ -41,16 +59,28 @@ def main():
     default=DEFAULT_CONFIG_PATH,
     help="Specify the path to the configuration TOML file.",
 )
-def run(file_path: str, config_path: str):
+def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: str):
     """Fetch and cache groups for all institutions.
 
-    Raises:
-        Exit: If fetching or caching fails even for one institution.
+    Cannot specify both --file-path and --directory-path/--fqdn-list-file.
 
-    """
+    """  # noqa: DOC501
     setup_config(config_path)
     setup_logger(__package__)  # pyright: ignore[reportArgumentType]
-    code = fetch_all(file_path)
+
+    validate_source_options(file_path, directory_path, fqdn_list_file)
+
+    if directory_path and fqdn_list_file:
+        logger.info(
+            f"Loading from directory source: {directory_path} and {fqdn_list_file}"
+        )
+        code = fetch_all(directory_path=directory_path, fqdn_list_file=fqdn_list_file)
+    else:
+        if file_path is None:
+            file_path = DEFAULT_INSTITUTIONS_PATH
+
+        logger.info(f"Loading from file source: {file_path}")
+        code = fetch_all(toml_path=file_path)
 
     if code != 0:
         raise click_.exceptions.Exit(code)
@@ -70,8 +100,24 @@ def run(file_path: str, config_path: str):
     "-f",
     type=click.Path(exists=True, dir_okay=False, path_type=str),
     required=False,
-    default=DEFAULT_INSTITUTIONS_PATH,
+    default=None,
     help="Specify the path to the TOML file containing institution data.",
+)
+@click.option(
+    "--directory-path",
+    "-d",
+    type=click.Path(exists=True, file_okay=False, path_type=str),
+    required=False,
+    default=None,
+    help="Specify the path to the directory containing TOML files.",
+)
+@click.option(
+    "--fqdn-list-file",
+    "-l",
+    type=click.Path(exists=True, dir_okay=False, path_type=str),
+    required=False,
+    default=None,
+    help="Specify the path to the file containing FQDN list.",
 )
 @click.option(
     "--config-path",
@@ -81,8 +127,51 @@ def run(file_path: str, config_path: str):
     default=DEFAULT_CONFIG_PATH,
     help="Specify the path to the configuration TOML file.",
 )
-def one(fqdn: str, file_path: str, config_path: str):
-    """Fetch and cache groups for a single institution."""
+def one(
+    fqdn: str,
+    file_path: str,
+    directory_path: str,
+    fqdn_list_file: str,
+    config_path: str,
+):
+    """Fetch and cache groups for a single institution.
+
+    Cannot specify both --file-path and --directory-path/--fqdn-list-file.
+
+    """
     setup_config(config_path)
     setup_logger(__package__)  # pyright: ignore[reportArgumentType]
-    fetch_one(file_path, fqdn)
+
+    validate_source_options(file_path, directory_path, fqdn_list_file)
+
+    if directory_path and fqdn_list_file:
+        logger.info(
+            f"Loading from directory source: {directory_path} and {fqdn_list_file}"
+        )
+        fetch_one(fqdn, directory_path=directory_path, fqdn_list_file=fqdn_list_file)
+    else:
+        if file_path is None:
+            file_path = DEFAULT_INSTITUTIONS_PATH
+
+        logger.info(f"Loading from file source: {file_path}")
+        fetch_one(fqdn, toml_path=file_path)
+
+
+def validate_source_options(
+    file_path: str | None,
+    directory_path: str | None,
+    fqdn_list_file: str | None,
+) -> None:
+    """Validate source options for loading institution information.
+
+    Raises:
+        click.UsageError: If the source options are invalid.
+
+    """
+    if file_path and (directory_path or fqdn_list_file):
+        error = "Cannot specify both --file-path and --directory-path/--fqdn-list-file."
+        raise click_.UsageError(error)
+
+    if not file_path and operator.xor(directory_path is None, fqdn_list_file is None):
+        error = "Both --directory-path and --fqdn-list-file must be specified."
+        raise click_.UsageError(error)
