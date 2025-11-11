@@ -80,7 +80,7 @@ def load_institutions(toml_path: str | Path) -> list[Institution]:
                 continue
             else:
                 if not check_existence_file(institution):
-                    progress.log(
+                    logger.warning(
                         f"Skip {ordinal} institution '{institution.fqdn}' "
                         "due to missing TLS client cert/key files.",
                     )
