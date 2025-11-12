@@ -86,6 +86,7 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
     Raises:
         RequestException: If the HTTP request fails.
         RedisError: If caching to Redis fails.
+        ValueError: If the institution with the given FQDN is not found.
 
     """
     store = connection()
@@ -96,8 +97,9 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
     )
 
     if target_institution is None:
-        logger.error("Institution with FQDN %s not found.", fqdn)
-        return
+        error_message = "Institution with FQDN %s not found."
+        logger.error(error_message, fqdn)
+        raise ValueError(error_message % fqdn)
 
     with console.status(f"Fetching and caching groups for institution: {fqdn}"):
         try:

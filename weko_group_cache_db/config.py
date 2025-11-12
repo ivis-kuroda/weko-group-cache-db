@@ -160,22 +160,9 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
         super().__init__(settings_cls)
         self.toml_path = toml_path
 
-    def get_field_value(
-        self,
-        field: FieldInfo,  # noqa: ARG002
-        field_name: str,
-    ) -> tuple[t.Any, str, bool]:
-        """Get the value of a field from the TOML file."""  # noqa: DOC201
-        data = getattr(self, "_data_cache", None)
-
-        if data is None:
-            data = self()
-            self._data_cache = data
-
-        if field_name in data:
-            return data[field_name], self.toml_path.as_posix(), True
-
-        return None, self.toml_path.as_posix(), False
+    def get_field_value(  # noqa: D102
+        self, field: FieldInfo, field_name: str
+    ) -> tuple[t.Any, str, bool]: ...
 
     def __call__(self) -> dict[str, t.Any]:
         """Load settings from TOML file."""  # noqa: DOC201
