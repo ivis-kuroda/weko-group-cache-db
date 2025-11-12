@@ -36,6 +36,27 @@ def set_test_config():
 
 
 @pytest.fixture
+def row_config():
+    return {
+        "DEVELOPMENT": True,
+        "LOG_LEVEL": "WARNING",
+        "SP_CONNECTOR_ID_PREFIX": "test_jc_",
+        "CACHE_KEY_SUFFIX": "_test_gakunin_groups",
+        "CACHE_TTL": 43200,
+        "MAP_GROUPS_API_ENDPOINT": "https://sample.gakunin.jp/api/groups/",
+        "REQUEST_TIMEOUT": 25,
+        "REQUEST_INTERVAL": 10,
+        "REQUEST_RETRIES": 5,
+        "REDIS_TYPE": "sentinel",
+        "REDIS_HOST": "redis",
+        "REDIS_PORT": 26379,
+        "REDIS_DB_INDEX": 2,
+        "REDIS_SENTINEL_MASTER": "testmaster",
+        "SENTINELS": [{"host": "redis1", "port": 26378}, {"host": "redis2", "port": 26377}],
+    }
+
+
+@pytest.fixture
 def log_capture(caplog) -> pytest.LogCaptureFixture:
     """Fixture for capturing logs.
 
