@@ -4,12 +4,14 @@
 
 """Utils module for weko-group-cache-db."""
 
+import time
 import traceback
 import typing as t
 
 from datetime import UTC, datetime
 from urllib.parse import urljoin
 
+import backoff
 import redis
 import requests
 
@@ -39,6 +41,7 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
     """
     store = connection()
     institutions = load_institutions(**kwargs)
+    total = len(institutions)
     code = 0
 
     with Progress(
@@ -48,27 +51,28 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
         console=console,
     ) as progress:
         task = progress.add_task(
-            "Fetching and caching groups for all institutions", total=len(institutions)
+            "Fetching and caching groups for all institutions", total=total
         )
 
-        for institution in institutions:
+        for index, institution in enumerate(institutions):
             try:
-                group_ids = fetch_map_groups(institution)
-                set_groups_to_redis(institution.fqdn, group_ids, store=store)
-
-                progress.log(f"{len(group_ids)} groups cached for {institution.fqdn}.")
-            except requests.RequestException:
-                traceback.print_exc()
-                code = 1
-            except redis.RedisError:
-                logger.error(
-                    "Failed to cache groups to Redis for institution: %s",
-                    institution.fqdn,
+                group_count = fetch_and_cache()(institution, store)
+                logger.info(
+                    "Successfully cached %(count)d groups for %(fqdn)s.",
+                    {"count": group_count, "fqdn": institution.fqdn},
                 )
-                traceback.print_exc()
+            except requests.RequestException, redis.RedisError:
+                logger.error(
+                    "Despite retries %(count)d times, failed to cache groups to Redis "
+                    "for institution: %(fqdn)s",
+                    {"count": config.REQUEST_RETRIES, "fqdn": institution.fqdn},
+                )
                 code = 1
             finally:
                 progress.update(task, advance=1)
+
+            if index != total - 1:
+                time.sleep(config.REQUEST_INTERVAL)
 
     return code
 
@@ -103,15 +107,56 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
 
     with console.status(f"Fetching and caching groups for institution: {fqdn}"):
         try:
-            group_ids = fetch_map_groups(target_institution)
-            set_groups_to_redis(target_institution.fqdn, group_ids, store=store)
+            group_count = fetch_and_cache()(target_institution, store)
+            logger.info("Successfully cached %d groups for %s.", group_count, fqdn)
         except requests.RequestException:
             raise
         except redis.RedisError:
             logger.error("Failed to cache groups to Redis for institution: %s", fqdn)
             raise
-        else:
-            logger.info("Successfully cached %d groups for %s.", len(group_ids), fqdn)
+
+
+def fetch_and_cache():
+    """Return a function that fetches and caches groups with retries.
+
+    Returns:
+        Callable[[Institution,Redis],int]:
+            A function that takes an Institution and Redis store,
+            fetches groups from the mAP API, and caches them in Redis with retries.
+
+    """
+
+    @backoff.on_exception(
+        lambda: backoff.expo(
+            base=config.REQUEST_RETRY_BASE,
+            factor=config.REQUEST_RETRY_FACTOR,
+            max_value=config.REQUEST_RETRY_MAX,
+        ),
+        (requests.RequestException, redis.RedisError),
+        max_tries=config.REQUEST_RETRIES + 1,
+        jitter=backoff.full_jitter,
+    )
+    def _retrieve_fetch_and_cache(institution: Institution, store: Redis) -> int:
+        try:
+            group_ids = fetch_map_groups(institution)
+            set_groups_to_redis(institution.fqdn, group_ids, store=store)
+            return len(group_ids)
+        except requests.RequestException:
+            logger.warning(
+                "Failed to cache groups to Redis for institution: %s",
+                institution.fqdn,
+            )
+            traceback.print_exc()
+            raise
+        except redis.RedisError:
+            logger.warning(
+                "Failed to cache groups to Redis for institution: %s",
+                institution.fqdn,
+            )
+            traceback.print_exc()
+            raise
+
+    return _retrieve_fetch_and_cache
 
 
 def fetch_map_groups(institution: Institution) -> list[str]:
@@ -123,26 +168,16 @@ def fetch_map_groups(institution: Institution) -> list[str]:
     Returns:
         list[str]: List of group IDs.
 
-    Raises:
-        RequestException: If the HTTP request fails.
-
     """
-    fqdn = institution.fqdn
-
     endpoint = urljoin(config.MAP_GROUPS_API_ENDPOINT, institution.sp_connector_id)
-    try:
-        response = requests.get(
-            endpoint,
-            cert=(institution.client_cert_path, institution.client_key_path),
-            timeout=config.REQUEST_TIMEOUT,
-        )
-        response.raise_for_status()
-        group_entries = response.json().get("entry", [])
-    except requests.RequestException:
-        logger.error(
-            "Failed to fetch groups from Gakunin API for institution: %s", fqdn
-        )
-        raise
+
+    response = requests.get(
+        endpoint,
+        cert=(institution.client_cert_path, institution.client_key_path),
+        timeout=config.REQUEST_TIMEOUT,
+    )
+    response.raise_for_status()
+    group_entries = response.json().get("entry", [])
 
     group_ids: list[str] = [
         group["id"].split("/")[-1] for group in group_entries if "id" in group

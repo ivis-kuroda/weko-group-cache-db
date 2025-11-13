@@ -54,11 +54,20 @@ class Settings(BaseSettings):
     REQUEST_TIMEOUT: t.Annotated[int, "seconds"] = 20
     """Request timeout when connecting to mAP API."""
 
-    REQUEST_INTERVAL: t.Annotated[int, "seconds"] = 5
+    REQUEST_INTERVAL: t.Annotated[int, "seconds"] = 3
     """Request interval when fetching groups from mAP API."""
 
     REQUEST_RETRIES: t.Annotated[int, "times"] = 3
     """Request retries when failed to fetch groups from mAP API."""
+
+    REQUEST_RETRY_BASE: t.Annotated[int | float, "seconds"] = 4
+    """Base time for exponential backoff during request retries."""
+
+    REQUEST_RETRY_FACTOR: t.Annotated[int | float, "seconds"] = 5
+    """Factor for exponential backoff during request retries."""
+
+    REQUEST_RETRY_MAX: t.Annotated[int | float, "seconds"] = 90
+    """Maximum time for exponential backoff during request retries."""
 
     REDIS_TYPE: t.Literal["redis", "sentinel"] = "redis"
     """Redis type to use. `redis` or `sentinel` is allowed."""
@@ -100,9 +109,6 @@ class Settings(BaseSettings):
         validate_default=True,
     )
 
-    toml_path: Path | None = None
-    """Path to the TOML configuration file."""
-
     @classmethod
     def settings_customise_sources(
         cls,
@@ -118,7 +124,7 @@ class Settings(BaseSettings):
             A tuple of customized settings sources sorted by priority.
 
         """
-        toml_path: str | Path | None = init_settings().get("toml_path")
+        toml_path: str | Path | None = init_settings().pop("toml_path", None)
 
         if toml_path is None:
             return super().settings_customise_sources(
@@ -178,7 +184,9 @@ class TomlConfigSettingsSource(PydanticBaseSettingsSource):
 
     def __repr__(self) -> str:
         """Representation."""  # noqa: DOC201
-        return f"TomlConfigSettingsSource(toml_path={self.toml_path})"
+        return (
+            f"TomlConfigSettingsSource(toml_path={self.toml_path})"  # pragma: no cover
+        )
 
 
 _no_config_msg = "Config has not been initialized."

@@ -24,10 +24,23 @@ map_groups_api_endpoint = "https://sample.gakunin.jp/api/groups/"
 # request_timeout = 20
 
 # === Request interval (in seconds) between mAP API requests. ===
-# request_interval = 5
+# request_interval = 3
+
+
+# !*** Request retries backoff interval settings. ***!
+#    interval(in seconds) = min(factor * (base ** request_count), max)
 
 # === Request retries when failed to fetch groups from mAP API. ===
 # request_retries = 3
+
+# === Base time (in seconds) for exponential backoff during request retries. ===
+# request_retry_base = 4
+
+# === Factor (in seconds) for exponential backoff during request retries. ===
+# request_retry_factor = 5
+
+# === Maximum time (in seconds) for exponential backoff during request retries. ===
+# request_retry_max = 90
 
 # === Redis type to use. `redis` or `sentinel` is allowed. ===
 # redis_type = "redis"
