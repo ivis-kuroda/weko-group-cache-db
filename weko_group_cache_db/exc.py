@@ -6,7 +6,11 @@
 
 
 class WekoGroupCacheDbError(Exception):
-    """Exception class for weko-group-cache-db."""
+    """Base exception class for weko-group-cache-db."""
+
+
+class UpdateError(WekoGroupCacheDbError):
+    """Exception class for update errors in weko-group-cache-db."""
 
     def __init__(self, fqdn: str, origin: Exception | None = None) -> None:
         """Initialize the exception with an optional original exception.
@@ -22,3 +26,7 @@ class WekoGroupCacheDbError(Exception):
 
     def __str__(self) -> str:  # noqa: D105
         return f"FQDN: {self.fqdn}, {self.original}"  # pragma: no cover
+
+
+class ConfigurationError(WekoGroupCacheDbError):
+    """Exception class for configuration errors in weko-group-cache-db."""

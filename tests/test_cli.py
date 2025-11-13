@@ -8,11 +8,11 @@ import click
 import pytest
 
 from weko_group_cache_db.cli import DEFAULT_CONFIG_PATH, DEFAULT_INSTITUTIONS_PATH, one, run, validate_source_options
-from weko_group_cache_db.exc import WekoGroupCacheDbError
+from weko_group_cache_db.exc import UpdateError
 
 
 # def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: str):
-def test_run_no_options(runner):
+def test_run_no_options(runner, log_capture):
     with (
         patch("weko_group_cache_db.cli.setup_config") as mock_setup_config,
         patch("weko_group_cache_db.cli.setup_logger") as mock_setup_logger,
@@ -26,6 +26,7 @@ def test_run_no_options(runner):
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(None, None, None)
     mock_fetch_all.assert_called_once_with(toml_path=DEFAULT_INSTITUTIONS_PATH)
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {DEFAULT_INSTITUTIONS_PATH}"
     assert result.exit_code == 0
 
 
@@ -36,7 +37,7 @@ def test_run_no_options(runner):
         ("-c"),
     ],
 )
-def test_run_with_config_path_option(runner, tmp_path, option):
+def test_run_with_config_path_option(runner, tmp_path, option, log_capture):
     test_config_path = tmp_path / "test_config.toml"
     test_config_path.write_text("[settings]\noption = value\n")
 
@@ -53,6 +54,7 @@ def test_run_with_config_path_option(runner, tmp_path, option):
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(None, None, None)
     mock_fetch_all.assert_called_once_with(toml_path=DEFAULT_INSTITUTIONS_PATH)
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {DEFAULT_INSTITUTIONS_PATH}"
     assert result.exit_code == 0
 
 
@@ -73,7 +75,7 @@ def test_run_with_config_path_option_not_exists(runner, tmp_path):
         ("-f"),
     ],
 )
-def test_run_with_file_path_option(runner, tmp_path, option):
+def test_run_with_file_path_option(runner, tmp_path, option, log_capture):
     test_file_path = tmp_path / "test_institutions.toml"
     test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
 
@@ -90,6 +92,7 @@ def test_run_with_file_path_option(runner, tmp_path, option):
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(str(test_file_path), None, None)
     mock_fetch_all.assert_called_once_with(toml_path=str(test_file_path))
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {test_file_path!s}"
     assert result.exit_code == 0
 
 
@@ -110,7 +113,7 @@ def test_run_with_file_path_option_not_exists(runner, tmp_path):
     ],
     ids=["long-options", "short-options"],
 )
-def test_run_with_directory_opstions(runner, tmp_path, opt_dir, opt_list):
+def test_run_with_directory_opstions(runner, tmp_path, opt_dir, opt_list, log_capture):
     test_directory_path = tmp_path / "toml_files"
     test_directory_path.mkdir()
     test_fqdn_list_file = tmp_path / "fqdn_list.txt"
@@ -139,10 +142,14 @@ def test_run_with_directory_opstions(runner, tmp_path, opt_dir, opt_list):
         directory_path=str(test_directory_path),
         fqdn_list_file=str(test_fqdn_list_file),
     )
+    assert (
+        log_capture.records[0].getMessage()
+        == f"Loading from directory source: {test_directory_path!s} and {test_fqdn_list_file!s}"
+    )
     assert result.exit_code == 0
 
 
-def test_run_fetch_raises_error(runner, tmp_path):
+def test_run_fetch_raises_error(runner, tmp_path, log_capture):
     test_file_path = tmp_path / "test_institutions.toml"
     test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
 
@@ -152,18 +159,19 @@ def test_run_fetch_raises_error(runner, tmp_path):
         patch("weko_group_cache_db.cli.fetch_all") as mock_fetch_all,
         patch("weko_group_cache_db.cli.validate_source_options") as mock_validate_source_options,
     ):
-        mock_fetch_all.side_effect = ExceptionGroup("Update error", [WekoGroupCacheDbError("Fetch error")])
+        mock_fetch_all.side_effect = ExceptionGroup("Update error", [UpdateError("Fetch error")])
         result = runner.invoke(run, ["--file-path", str(test_file_path)])
 
     mock_setup_config.assert_called_once_with(DEFAULT_CONFIG_PATH)
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(str(test_file_path), None, None)
     mock_fetch_all.assert_called_once_with(toml_path=str(test_file_path))
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {test_file_path!s}"
     assert result.exit_code != 0
 
 
 # def one(fqdn: str, file_path: str, directory_path: str, fqdn_list_file: str, config_path: str):
-def test_one_no_options(runner):
+def test_one_no_options(runner, log_capture):
     with (
         patch("weko_group_cache_db.cli.setup_config") as mock_setup_config,
         patch("weko_group_cache_db.cli.setup_logger") as mock_setup_logger,
@@ -177,6 +185,7 @@ def test_one_no_options(runner):
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(None, None, None)
     mock_fetch_one.assert_called_once_with("example.ac.jp", toml_path=DEFAULT_INSTITUTIONS_PATH)
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {DEFAULT_INSTITUTIONS_PATH}"
     assert result.exit_code == 0
 
 
@@ -187,7 +196,7 @@ def test_one_no_options(runner):
         ("-c"),
     ],
 )
-def test_one_with_config_path_option(runner, tmp_path, option):
+def test_one_with_config_path_option(runner, tmp_path, option, log_capture):
     test_config_path = tmp_path / "test_config.toml"
     test_config_path.write_text("[settings]\noption = value\n")
 
@@ -204,6 +213,7 @@ def test_one_with_config_path_option(runner, tmp_path, option):
     mock_setup_logger.assert_called_once()
     mock_validate_source_options.assert_called_once_with(None, None, None)
     mock_fetch_one.assert_called_once_with("example.ac.jp", toml_path=DEFAULT_INSTITUTIONS_PATH)
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {DEFAULT_INSTITUTIONS_PATH}"
     assert result.exit_code == 0
 
 
@@ -214,7 +224,7 @@ def test_one_with_config_path_option(runner, tmp_path, option):
         ("-f"),
     ],
 )
-def test_one_with_file_path_option(runner, tmp_path, option):
+def test_one_with_file_path_option(runner, tmp_path, option, log_capture):
     test_file_path = tmp_path / "test_institutions.toml"
     test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
 
@@ -241,6 +251,7 @@ def test_one_with_file_path_option(runner, tmp_path, option):
         "example.ac.jp",
         toml_path=str(test_file_path),
     )
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {test_file_path!s}"
     assert result.exit_code == 0
 
 
@@ -252,7 +263,7 @@ def test_one_with_file_path_option(runner, tmp_path, option):
     ],
     ids=["long-options", "short-options"],
 )
-def test_one_with_directory_path_option(runner, tmp_path, opt_dir, opt_list):
+def test_one_with_directory_path_option(runner, tmp_path, opt_dir, opt_list, log_capture):
     test_directory_path = tmp_path / "toml_files"
     test_directory_path.mkdir()
     test_fqdn_list_file = tmp_path / "fqdn_list.txt"
@@ -288,6 +299,10 @@ def test_one_with_directory_path_option(runner, tmp_path, opt_dir, opt_list):
         directory_path=str(test_directory_path),
         fqdn_list_file=str(test_fqdn_list_file),
     )
+    assert (
+        log_capture.records[0].getMessage()
+        == f"Loading from directory source: {test_directory_path!s} and {test_fqdn_list_file!s}"
+    )
     assert result.exit_code == 0
 
 
@@ -295,11 +310,11 @@ def test_one_with_directory_path_option(runner, tmp_path, opt_dir, opt_list):
     "error_instance",
     [
         ValueError("Institution not found"),
-        WekoGroupCacheDbError("Fetch error"),
+        UpdateError("Fetch error"),
     ],
-    ids=["ValueError", "WekoGroupCacheDbError"],
+    ids=["ValueError", "UpdateError"],
 )
-def test_one_fetch_raises_error(runner, tmp_path, error_instance):
+def test_one_fetch_raises_error(runner, tmp_path, error_instance, log_capture):
     test_file_path = tmp_path / "test_institutions.toml"
     test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
 
@@ -325,6 +340,7 @@ def test_one_fetch_raises_error(runner, tmp_path, error_instance):
         "example.ac.jp",
         toml_path=str(test_file_path),
     )
+    assert log_capture.records[0].getMessage() == f"Loading from file source: {test_file_path!s}"
     assert result.exit_code != 0
 
 

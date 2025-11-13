@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import ValidationError
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
+from .exc import ConfigurationError
 from .logger import console, logger
 
 
@@ -64,8 +65,7 @@ def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
         list[Institution]: List of Institution objects.
 
     Raises:
-        ValueError: If the TOML file cannot be read.
-        TOMLDecodeError: If the TOML file is invalid.
+        ConfigurationError: If the TOML file cannot be read or is invalid.
 
     """
     if isinstance(toml_path, str):
@@ -75,19 +75,21 @@ def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
         try:
             with toml_path.open("rb") as f:
                 toml_data = tomllib.load(f)
-        except FileNotFoundError:
-            logger.error("TOML file not found: %s", toml_path)
-            return []
-        except TOMLDecodeError, ValueError:
-            logger.error("Failed to load TOML file: %s", toml_path)
-            raise
+        except FileNotFoundError as ex:
+            error_message = "TOML file not found: %s"
+            logger.error(error_message, toml_path)
+            raise ConfigurationError(error_message % toml_path) from ex
+        except (TOMLDecodeError, ValueError) as ex:
+            error_message = "Failed to load TOML file: %s"
+            logger.error(error_message, toml_path)
+            raise ConfigurationError(error_message % toml_path) from ex
 
         if "institutions" not in toml_data:
             logger.error("No 'institutions' section found in the TOML file.")
             return []
 
         if not isinstance(toml_data["institutions"], list):
-            logger.error("Invalid 'institutions' section format in the TOML file.")
+            logger.error("The 'institutions' section must be a list in the TOML file.")
             return []
 
     p = inflect.engine()
@@ -108,16 +110,18 @@ def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
                 institution = Institution.model_validate(item)
             except ValidationError:
                 institution_fqdn = item.get("fqdn", "Unknown")
-                progress.log(
-                    f"Failed to load {ordinal} institution '{institution_fqdn}'.",
+                logger.warning(
+                    'Failed to load %(ordinal)s institution "%(fqdn)s".',
+                    {"ordinal": ordinal, "fqdn": institution_fqdn},
                 )
                 traceback.print_exc()
                 continue
             else:
                 if not check_existence_file(institution):
                     logger.warning(
-                        f"Skip {ordinal} institution '{institution.fqdn}' "
+                        'Skip %(ordinal)s institution "%(fqdn)s" '
                         "due to missing TLS client cert/key files.",
+                        {"ordinal": ordinal, "fqdn": institution.fqdn},
                     )
                     continue
 
@@ -161,12 +165,11 @@ def load_institutions_from_directory(
         fqdn_list_file = Path(fqdn_list_file)
 
     with fqdn_list_file.open("r", encoding="utf-8") as f:
-        fqdn_set = {
+        fqdn_list = [
             L.split(" ")[0]
             for line in f
             if (L := line.strip()) and not L.startswith("#")
-        }
-
+        ]
     p = inflect.engine()
     institutions: list[Institution] = []
     with Progress(
@@ -176,9 +179,9 @@ def load_institutions_from_directory(
         console=console,
     ) as progress:
         task = progress.add_task(
-            "Loading institutions from directory...", total=len(fqdn_set)
+            "Loading institutions from directory...", total=len(fqdn_list)
         )
-        for index, fqdn in enumerate(fqdn_set):
+        for index, fqdn in enumerate(fqdn_list):
             ordinal = p.ordinal(index + 1)  # pyright: ignore[reportArgumentType]
 
             sp_connector_id = (
@@ -196,16 +199,18 @@ def load_institutions_from_directory(
                     client_key_path=str(client_key_path),
                 )
             except ValidationError:
-                progress.log(
-                    f"Failed to load {ordinal} institution '{fqdn}'.",
+                logger.warning(
+                    'Failed to load %(ordinal)s institution "%(fqdn)s".',
+                    {"ordinal": ordinal, "fqdn": fqdn},
                 )
                 traceback.print_exc()
                 continue
             else:
                 if not check_existence_file(institution):
                     logger.warning(
-                        f"Skip {ordinal} institution '{institution.fqdn}' "
-                        "due to missing TLS client cert/key files.",
+                        'Skip %(ordinal)s institution "%(fqdn)s" due to missing '
+                        "TLS client cert/key files.",
+                        {"ordinal": ordinal, "fqdn": institution.fqdn},
                     )
                     continue
                 institutions.append(institution)

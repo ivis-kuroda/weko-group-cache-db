@@ -10,6 +10,7 @@ import pytest
 
 from click.testing import CliRunner
 
+from weko_group_cache_db import loader
 from weko_group_cache_db.config import Settings, _current_config
 
 
@@ -61,14 +62,42 @@ def row_config():
 
 @pytest.fixture
 def log_capture(caplog) -> pytest.LogCaptureFixture:
-    """Fixture for capturing logs.
-
-    Args:
-        caplog (LogCaptureFixture): A LogCaptureFixture instance.
-
-    Returns:
-        LogCaptureFixture: A LogCaptureFixture instance.
-
-    """
     caplog.set_level(INFO)
     return caplog
+
+
+@pytest.fixture
+def institutions_data():
+    loader.SP_CONNECTOR_ID_PREFIX = "test_jc_"
+
+    def _data(num: int) -> list[dict[str, str]]:
+        return [
+            {
+                "name": f"institution_{i}",
+                "fqdn": f"example{i}.ac.jp",
+                "sp_connector_id": f"test_jc_example{i}_ac_jp",
+                "client_cert_path": f"/path/to/client_cert_{i}.pem",
+                "client_key_path": f"/path/to/client_key_{i}.pem",
+            }
+            for i in range(1, num + 1)
+        ]
+
+    return _data
+
+
+@pytest.fixture
+def institutions_data_alias(institutions_data):
+    def _data(num: int) -> list[dict[str, str]]:
+        data = institutions_data(num)
+        return [
+            {
+                "name": inst["name"],
+                "fqdn": inst["fqdn"],
+                "spid": inst["sp_connector_id"],
+                "cert": inst["client_cert_path"],
+                "key": inst["client_key_path"],
+            }
+            for inst in data
+        ]
+
+    return _data

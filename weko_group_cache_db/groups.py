@@ -18,7 +18,7 @@ import requests
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
 from .config import config
-from .exc import WekoGroupCacheDbError
+from .exc import UpdateError
 from .loader import Institution, InstitutionSource, load_institutions
 from .logger import console, logger
 from .redis import connection
@@ -44,7 +44,11 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
     store = connection()
     institutions = load_institutions(**kwargs)
     total = len(institutions)
-    exceptions: list[WekoGroupCacheDbError] = []
+    exceptions: list[UpdateError] = []
+
+    if total == 0:
+        logger.warning("No institutions found to fetch and cache groups for.")
+        return
 
     with Progress(
         SpinnerColumn(),
@@ -69,7 +73,7 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
                     "for institution: %(fqdn)s",
                     {"count": config.REQUEST_RETRIES, "fqdn": institution.fqdn},
                 )
-                exceptions.append(WekoGroupCacheDbError(institution.fqdn, origin=ex))
+                exceptions.append(UpdateError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
 
@@ -94,7 +98,7 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
 
     Raises:
         ValueError: If the institution with the given FQDN is not found.
-        WekoGroupCacheDbError: If fetching or caching groups fails.
+        UpdateError: If fetching or caching groups fails.
 
     """
     store = connection()
@@ -119,7 +123,7 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
                 "for institution: %(fqdn)s",
                 {"count": config.REQUEST_RETRIES, "fqdn": target_institution.fqdn},
             )
-            raise WekoGroupCacheDbError(fqdn, origin=ex) from ex
+            raise UpdateError(fqdn, origin=ex) from ex
 
 
 def fetch_and_cache():
