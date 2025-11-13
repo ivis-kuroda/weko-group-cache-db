@@ -64,7 +64,7 @@ def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: s
 
     Cannot specify both --file-path and --directory-path/--fqdn-list-file.
 
-    """  # noqa: DOC501
+    """
     setup_config(config_path)
     setup_logger(__package__)  # pyright: ignore[reportArgumentType]
 
@@ -74,16 +74,13 @@ def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: s
         logger.info(
             f"Loading from directory source: {directory_path} and {fqdn_list_file}"
         )
-        code = fetch_all(directory_path=directory_path, fqdn_list_file=fqdn_list_file)
+        fetch_all(directory_path=directory_path, fqdn_list_file=fqdn_list_file)
     else:
         if file_path is None:
             file_path = DEFAULT_INSTITUTIONS_PATH
 
         logger.info(f"Loading from file source: {file_path}")
-        code = fetch_all(toml_path=file_path)
-
-    if code != 0:
-        raise click_.exceptions.Exit(code)
+        fetch_all(toml_path=file_path)
 
 
 @main.command(context_settings={"show_default": True})

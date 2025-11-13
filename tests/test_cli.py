@@ -6,11 +6,9 @@ from unittest.mock import patch
 
 import click
 import pytest
-import requests
-
-from redis.exceptions import RedisError
 
 from weko_group_cache_db.cli import DEFAULT_CONFIG_PATH, DEFAULT_INSTITUTIONS_PATH, one, run, validate_source_options
+from weko_group_cache_db.exc import WekoGroupCacheDbError
 
 
 # def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: str):
@@ -144,25 +142,7 @@ def test_run_with_directory_opstions(runner, tmp_path, opt_dir, opt_list):
     assert result.exit_code == 0
 
 
-def test_run_fetch_exit_non_zero(runner, tmp_path):
-    test_file_path = tmp_path / "test_institutions.toml"
-    test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
-
-    with (
-        patch("weko_group_cache_db.cli.setup_config") as mock_setup_config,
-        patch("weko_group_cache_db.cli.setup_logger") as mock_setup_logger,
-        patch("weko_group_cache_db.cli.fetch_all") as mock_fetch_all,
-    ):
-        mock_fetch_all.return_value = 1
-        result = runner.invoke(run, ["--file-path", str(test_file_path)])
-
-    mock_setup_config.assert_called_once_with(DEFAULT_CONFIG_PATH)
-    mock_setup_logger.assert_called_once()
-    mock_fetch_all.assert_called_once_with(toml_path=str(test_file_path))
-    assert result.exit_code == 1
-
-
-def test_run_fetch_raises_redis_error(runner, tmp_path):
+def test_run_fetch_raises_error(runner, tmp_path):
     test_file_path = tmp_path / "test_institutions.toml"
     test_file_path.write_text("[institutions]\nfqdn = example.ac.jp\n")
 
@@ -172,7 +152,7 @@ def test_run_fetch_raises_redis_error(runner, tmp_path):
         patch("weko_group_cache_db.cli.fetch_all") as mock_fetch_all,
         patch("weko_group_cache_db.cli.validate_source_options") as mock_validate_source_options,
     ):
-        mock_fetch_all.side_effect = RedisError("Redis error")
+        mock_fetch_all.side_effect = ExceptionGroup("Update error", [WekoGroupCacheDbError("Fetch error")])
         result = runner.invoke(run, ["--file-path", str(test_file_path)])
 
     mock_setup_config.assert_called_once_with(DEFAULT_CONFIG_PATH)
@@ -315,10 +295,9 @@ def test_one_with_directory_path_option(runner, tmp_path, opt_dir, opt_list):
     "error_instance",
     [
         ValueError("Institution not found"),
-        RedisError("Redis error"),
-        requests.RequestException("Request failed"),
+        WekoGroupCacheDbError("Fetch error"),
     ],
-    ids=["ValueError", "RedisError", "RequestException"],
+    ids=["ValueError", "WekoGroupCacheDbError"],
 )
 def test_one_fetch_raises_error(runner, tmp_path, error_instance):
     test_file_path = tmp_path / "test_institutions.toml"

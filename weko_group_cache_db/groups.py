@@ -18,6 +18,7 @@ import requests
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
 from .config import config
+from .exc import WekoGroupCacheDbError
 from .loader import Institution, InstitutionSource, load_institutions
 from .logger import console, logger
 from .redis import connection
@@ -26,7 +27,7 @@ if t.TYPE_CHECKING:
     from redis import Redis
 
 
-def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
+def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
     """Fetch and cache groups for all institutions.
 
     Arguments:
@@ -35,14 +36,15 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
             - directory_path (str | Path): Path to the directory containing TOML files.
             - fqdn_list_file (str | Path): Path to the file containing FQDN list.
 
-    Returns:
-        int: Exit code (0 for success, 1 for failure).
+    Raises:
+        ExceptionGroup:
+            If there are failures in updating information from one or more institutions.
 
     """
     store = connection()
     institutions = load_institutions(**kwargs)
     total = len(institutions)
-    code = 0
+    exceptions: list[WekoGroupCacheDbError] = []
 
     with Progress(
         SpinnerColumn(),
@@ -61,20 +63,23 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]) -> int:
                     "Successfully cached %(count)d groups for %(fqdn)s.",
                     {"count": group_count, "fqdn": institution.fqdn},
                 )
-            except requests.RequestException, redis.RedisError:
+            except (requests.RequestException, redis.RedisError) as ex:
                 logger.error(
                     "Despite retries %(count)d times, failed to cache groups to Redis "
                     "for institution: %(fqdn)s",
                     {"count": config.REQUEST_RETRIES, "fqdn": institution.fqdn},
                 )
-                code = 1
+                exceptions.append(WekoGroupCacheDbError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
 
             if index != total - 1:
                 time.sleep(config.REQUEST_INTERVAL)
 
-    return code
+    if exceptions:
+        error_message = "Failed to update information from %d institution(s)."
+        logger.error(error_message, len(exceptions))
+        raise ExceptionGroup(error_message % len(exceptions), exceptions)
 
 
 def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
@@ -88,9 +93,8 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
             - fqdn_list_file (str | Path): Path to the file containing FQDN list.
 
     Raises:
-        RequestException: If the HTTP request fails.
-        RedisError: If caching to Redis fails.
         ValueError: If the institution with the given FQDN is not found.
+        WekoGroupCacheDbError: If fetching or caching groups fails.
 
     """
     store = connection()
@@ -109,11 +113,13 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
         try:
             group_count = fetch_and_cache()(target_institution, store)
             logger.info("Successfully cached %d groups for %s.", group_count, fqdn)
-        except requests.RequestException:
-            raise
-        except redis.RedisError:
-            logger.error("Failed to cache groups to Redis for institution: %s", fqdn)
-            raise
+        except (requests.RequestException, redis.RedisError) as ex:
+            logger.error(
+                "Despite retries %(count)d times, failed to cache groups to Redis "
+                "for institution: %(fqdn)s",
+                {"count": config.REQUEST_RETRIES, "fqdn": target_institution.fqdn},
+            )
+            raise WekoGroupCacheDbError(fqdn, origin=ex) from ex
 
 
 def fetch_and_cache():
