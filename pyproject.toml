@@ -1,6 +1,6 @@
 [project]
 name = "weko-group-cache-db"
-version = "1.0.0rc3"
+version = "1.0.0rc4"
 description = "CLI tool for caching mAP group information on JAIRO Cloud."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -22,6 +22,7 @@ wgcd = "weko_group_cache_db.cli:main"
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.407",
     "pytest>=8.4.2",
     "pytest-cov>=7.0.0",
     "taskipy>=1.14.1",
@@ -77,3 +78,7 @@ docstring-code-line-length = 80
 line-ending = "lf"
 preview = true
 skip-magic-trailing-comma = false
+
+[tool.pyright]
+typeCheckingMode =  "standard"
+

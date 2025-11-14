@@ -10,7 +10,6 @@ import pytest
 
 from click.testing import CliRunner
 
-from weko_group_cache_db import loader
 from weko_group_cache_db.config import Settings, _current_config
 
 
@@ -69,8 +68,6 @@ def log_capture(caplog) -> pytest.LogCaptureFixture:
 
 @pytest.fixture
 def institutions_data():
-    loader.SP_CONNECTOR_ID_PREFIX = "test_jc_"
-
     def _data(num: int) -> list[dict[str, str]]:
         return [
             {

@@ -233,7 +233,6 @@ def check_existence_file(institution: Institution) -> bool:
     """
     cert_path = Path(institution.client_cert_path)
     key_path = Path(institution.client_key_path)
-    logger.info(f"cert_path: {cert_path}, key_path: {key_path}")
 
     return cert_path.exists() and key_path.exists()
 
