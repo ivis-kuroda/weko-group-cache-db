@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic_core import ValidationError
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn
 
+from .config import config
 from .exc import ConfigurationError
 from .logger import console, logger
 
@@ -134,9 +135,6 @@ def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
     return institutions
 
 
-SP_CONNECTOR_ID_PREFIX = "jc_"
-"""Prefix for SP ID."""
-
 CRT_FILE_NAME = "server.crt"
 """File name for TLS client certificate in directory source."""
 
@@ -185,7 +183,8 @@ def load_institutions_from_directory(
             ordinal = p.ordinal(index + 1)  # pyright: ignore[reportArgumentType]
 
             sp_connector_id = (
-                f"{SP_CONNECTOR_ID_PREFIX}{fqdn.replace('.', '_').replace('-', '_')}"
+                f"{config.SP_CONNECTOR_ID_PREFIX}"
+                f"{fqdn.replace('.', '_').replace('-', '_')}"
             )
             client_cert_path = directory_path / fqdn / CRT_FILE_NAME
             client_key_path = directory_path / fqdn / KEY_FILE_NAME

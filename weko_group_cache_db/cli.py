@@ -41,7 +41,7 @@ def main():
     type=click.Path(exists=True, file_okay=False, path_type=str),
     required=False,
     default=None,
-    help="Specify the path to the directory containing TOML files.",
+    help="Specify the path to the directory containing institution TLS files.",
 )
 @click.option(
     "--fqdn-list-file",
@@ -106,7 +106,7 @@ def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: s
     type=click.Path(exists=True, file_okay=False, path_type=str),
     required=False,
     default=None,
-    help="Specify the path to the directory containing TOML files.",
+    help="Specify the path to the directory containing institution TLS files.",
 )
 @click.option(
     "--fqdn-list-file",

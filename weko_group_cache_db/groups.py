@@ -24,7 +24,7 @@ from .logger import console, logger
 from .redis import connection
 
 if t.TYPE_CHECKING:
-    from redis import Redis
+    from redis import Redis  # pragma: no cover
 
 
 def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
@@ -70,7 +70,7 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
             except (requests.RequestException, redis.RedisError) as ex:
                 logger.error(
                     "Despite retries %(count)d times, failed to cache groups to Redis "
-                    "for institution: %(fqdn)s",
+                    "for institution: %(fqdn)s.",
                     {"count": config.REQUEST_RETRIES, "fqdn": institution.fqdn},
                 )
                 traceback.print_exc()
@@ -121,7 +121,7 @@ def fetch_one(fqdn: str, **kwargs: t.Unpack[InstitutionSource]) -> None:
         except (requests.RequestException, redis.RedisError) as ex:
             logger.error(
                 "Despite retries %(count)d times, failed to cache groups to Redis "
-                "for institution: %(fqdn)s",
+                "for institution: %(fqdn)s.",
                 {"count": config.REQUEST_RETRIES, "fqdn": target_institution.fqdn},
             )
             raise UpdateError(fqdn, origin=ex) from ex
@@ -154,7 +154,7 @@ def fetch_and_cache():
             return len(group_ids)
         except requests.RequestException:
             logger.warning(
-                "Failed to cache groups to Redis for institution: %s",
+                "Failed to fetch groups from mAP API for institution: %s",
                 institution.fqdn,
             )
             raise

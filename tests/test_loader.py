@@ -49,10 +49,10 @@ def test_load_institutions_invalid(log_capture):
 
 # def load_institutions_from_toml(toml_path: str | Path) -> list[Institution]:
 def test_load_institutions_from_toml(tmp_path, institutions_data, log_capture):
-    institutions_num = 2
+    num_institutions = 2
     toml_path = tmp_path / "test_institutions.toml"
     toml_path.write_text("[[institutions]]\n")
-    data = institutions_data(institutions_num)
+    data = institutions_data(num_institutions)
 
     with (
         patch("weko_group_cache_db.loader.tomllib.load") as mock_load,
@@ -63,19 +63,19 @@ def test_load_institutions_from_toml(tmp_path, institutions_data, log_capture):
 
         result = load_institutions_from_toml(toml_path)
 
-    assert len(result) == institutions_num
+    assert len(result) == num_institutions
     assert all(isinstance(inst, Institution) for inst in result)
     assert result[0].model_dump() == data[0]
     assert result[1].model_dump() == data[1]
-    assert log_capture.records[0].getMessage() == f"{institutions_num} institutions loaded successfully."
+    assert log_capture.records[0].getMessage() == f"{num_institutions} institutions loaded successfully."
 
 
 def test_load_institutions_from_toml_alias(tmp_path, institutions_data, institutions_data_alias, log_capture):
-    institutions_num = 2
+    num_institutions = 2
     toml_path = tmp_path / "test_institutions_alias.toml"
     toml_path.write_text("[[institutions]]\n")
-    base_data = institutions_data(institutions_num)
-    data = institutions_data_alias(institutions_num)
+    base_data = institutions_data(num_institutions)
+    data = institutions_data_alias(num_institutions)
 
     with (
         patch("weko_group_cache_db.loader.tomllib.load") as mock_load,
@@ -86,18 +86,18 @@ def test_load_institutions_from_toml_alias(tmp_path, institutions_data, institut
 
         result = load_institutions_from_toml(toml_path)
 
-    assert len(result) == institutions_num
+    assert len(result) == num_institutions
     assert all(isinstance(inst, Institution) for inst in result)
     assert result[0].model_dump() == base_data[0]
     assert result[1].model_dump() == base_data[1]
-    assert log_capture.records[0].getMessage() == f"{institutions_num} institutions loaded successfully."
+    assert log_capture.records[0].getMessage() == f"{num_institutions} institutions loaded successfully."
 
 
 def test_load_institutions_from_toml_no_sections(tmp_path, institutions_data, log_capture):
-    institutions_num = 2
+    num_institutions = 2
     toml_path = tmp_path / "test_institutions.toml"
     toml_path.write_text("[[institutions]]\n")
-    data = institutions_data(institutions_num)
+    data = institutions_data(num_institutions)
 
     with (
         patch("weko_group_cache_db.loader.tomllib.load") as mock_load,
@@ -113,10 +113,10 @@ def test_load_institutions_from_toml_no_sections(tmp_path, institutions_data, lo
 
 
 def test_load_institutions_from_toml_no_list(tmp_path, institutions_data, log_capture):
-    institutions_num = 1
+    num_institutions = 1
     toml_path = tmp_path / "test_institutions.toml"
     toml_path.write_text("[[institutions]]\n")
-    data = institutions_data(institutions_num)
+    data = institutions_data(num_institutions)
 
     with (
         patch("weko_group_cache_db.loader.tomllib.load") as mock_load,
@@ -200,21 +200,23 @@ def test_load_institutions_from_toml_no_crt(log_capture, tmp_path, institutions_
     assert log_capture.records[1].getMessage() == "1 institutions loaded successfully."
 
 
-def test_load_institutions_from_directory(tmp_path, institutions_data, log_capture):
+def test_load_institutions_from_directory(tmp_path, institutions_data, log_capture, set_test_config):
     directory_path = tmp_path / "institutions"
     directory_path.mkdir()
     fqdn_list_file = tmp_path / "fqdn_list.txt"
-    institutions_num = 2
-    data = institutions_data(institutions_num)
+    num_institutions = 2
+    data = institutions_data(num_institutions)
 
     fqdn_list_file.write_text("\n".join([inst["fqdn"] for inst in data]))
+
+    set_test_config(SP_CONNECTOR_ID_PREFIX="test_jc_")
 
     with patch("weko_group_cache_db.loader.check_existence_file") as mock_check:
         mock_check.return_value = True
 
         result = load_institutions_from_directory(directory_path, fqdn_list_file)
 
-    assert len(result) == institutions_num
+    assert len(result) == num_institutions
     assert all(isinstance(inst, Institution) for inst in result)
     assert result[0].fqdn == data[0]["fqdn"]
     assert result[0].sp_connector_id == data[0]["sp_connector_id"]
@@ -222,15 +224,15 @@ def test_load_institutions_from_directory(tmp_path, institutions_data, log_captu
     assert result[1].fqdn == data[1]["fqdn"]
     assert result[1].sp_connector_id == data[1]["sp_connector_id"]
     assert result[1].client_cert_path == str(directory_path / data[1]["fqdn"] / loader.CRT_FILE_NAME)
-    assert log_capture.records[0].getMessage() == f"{institutions_num} institutions loaded successfully."
+    assert log_capture.records[0].getMessage() == f"{num_institutions} institutions loaded successfully."
 
 
 def test_load_institutions_from_directory_validation_error(tmp_path, institutions_data, log_capture):
     directory_path = tmp_path / "institutions"
     directory_path.mkdir()
     fqdn_list_file = tmp_path / "fqdn_list.txt"
-    institutions_num = 2
-    data = institutions_data(institutions_num)
+    num_institutions = 2
+    data = institutions_data(num_institutions)
 
     fqdn_list_file.write_text("\n".join([inst["fqdn"] for inst in data]))
 
@@ -257,8 +259,8 @@ def test_load_institutions_from_directory_no_cert(tmp_path, institutions_data, l
     directory_path = tmp_path / "institutions"
     directory_path.mkdir()
     fqdn_list_file = tmp_path / "fqdn_list.txt"
-    institutions_num = 2
-    data = institutions_data(institutions_num)
+    num_institutions = 2
+    data = institutions_data(num_institutions)
 
     fqdn_list_file.write_text("\n".join([inst["fqdn"] for inst in data]))
 

@@ -22,10 +22,10 @@ class UpdateError(WekoGroupCacheDbError):
         """
         super().__init__(fqdn)
         self.fqdn = fqdn
-        self.original = origin
+        self.origin = origin
 
     def __str__(self) -> str:  # noqa: D105
-        return f"FQDN: {self.fqdn}, {self.original}"  # pragma: no cover
+        return f"FQDN: {self.fqdn}, {self.origin}"
 
 
 class ConfigurationError(WekoGroupCacheDbError):

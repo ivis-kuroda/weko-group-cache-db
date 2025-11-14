@@ -28,10 +28,11 @@ def runner(monkeypatch):
 
 @pytest.fixture
 def set_test_config():
-    def _set_test_config(**kwargs: t.Any) -> None:
+    def _set_test_config(**kwargs: t.Any) -> Settings:
         kwargs.setdefault("MAP_GROUPS_API_ENDPOINT", "https://sample.gakunin.jp/api/groups/")
         test_config = Settings(**kwargs)
         _current_config.set(test_config)
+        return test_config
 
     return _set_test_config
 
