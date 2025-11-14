@@ -1,0 +1,6 @@
+services:
+  dev:
+    image: mcr.microsoft.com/devcontainers/base:debian
+    volumes:
+      - .:/workspace
+    command: sleep infinity

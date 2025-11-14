@@ -1,0 +1,52 @@
+{
+  "name": "weko-group-cache-db Dev Container",
+  "dockerComposeFile": [
+    "../compose.yaml",
+    "dev.compose.yaml"
+  ],
+  "runServices": ["dev", "redis"],
+  "service": "dev",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspace",
+
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.14"
+    }
+  },
+  "remoteEnv": {
+    "VIRTUAL_ENV": "/home/vscode/.venv",
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv"
+  },
+  "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh vscode",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.pythonPath": "/code/.venv/bin/python",
+        "python.languageServer": "Pylance",
+        "[python]": {
+          "editor.rulers": [88],
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      },
+      "extensions": [
+        "visualstudioexptteam.vscodeintellicode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "tamasfe.even-better-toml",
+
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+
+        "mhutchie.git-graph",
+        "eamodio.gitlens"
+      ]
+    }
+  }
+}
