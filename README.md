@@ -1,5 +1,6 @@
 # weko-group-cache-db / グループ情報キャッシュ機能
 <!-- Pytest Coverage Comment:Begin -->
+<a href="https://github.com/ivis-kuroda/weko-group-cache-db/blob/main/README.md"><img alt="Coverage" src="https://img.shields.io/badge/Coverage-100%25-brightgreen.svg" /></a>
 <!-- Pytest Coverage Comment:End -->
 
 ## 概要
