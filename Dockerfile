@@ -23,7 +23,11 @@ RUN echo "source /code/.venv/bin/activate" >> /home/pyuser/.bashrc
 
 # === Production image ===
 FROM base AS production
-RUN uv sync --frozen && \
+
+ENV VIRTUAL_ENV="/code/.venv"
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN uv sync --no-dev --frozen && \
     uv pip install .
 
-CMD ["sleep", "infinity"]
+CMD ["sh", "-c", "COLUMNS=120 exec wgcd run -d /var/mnt -l /var/repositories.txt"]
