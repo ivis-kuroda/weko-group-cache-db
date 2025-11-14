@@ -2,6 +2,8 @@
 # Copyright (C) 2025 National Institute of Informatics.
 #
 
+import re
+
 from unittest.mock import patch
 
 import click
@@ -9,6 +11,10 @@ import pytest
 
 from weko_group_cache_db.cli import DEFAULT_CONFIG_PATH, DEFAULT_INSTITUTIONS_PATH, one, run, validate_source_options
 from weko_group_cache_db.exc import UpdateError
+
+
+def strip_ansi(s):
+    return re.sub(r"\x1b\[[0-9;]*m", "", s)
 
 
 # def run(file_path: str, directory_path: str, fqdn_list_file: str, config_path: str):
@@ -63,9 +69,10 @@ def test_run_with_config_path_option_not_exists(runner, tmp_path):
 
     result = runner.invoke(run, ["--config-path", str(non_existent_path)])
 
+    output = strip_ansi(result.output)
     assert result.exit_code != 0
-    assert "Invalid value for '--config-path' / '-c'" in result.output
-    assert "does not exist." in result.output
+    assert "Invalid value for '--config-path' / '-c'" in output
+    assert "does not exist." in output
 
 
 @pytest.mark.parametrize(
@@ -100,9 +107,10 @@ def test_run_with_file_path_option_not_exists(runner, tmp_path):
     non_existent_path = tmp_path / "non_existent_institutions.toml"
 
     result = runner.invoke(run, ["--file-path", str(non_existent_path)])
+    output = strip_ansi(result.output)
     assert result.exit_code != 0
-    assert "Invalid value for '--file-path' / '-f'" in result.output
-    assert "does not exist." in result.output
+    assert "Invalid value for '--file-path' / '-f'" in output
+    assert "does not exist." in output
 
 
 @pytest.mark.parametrize(

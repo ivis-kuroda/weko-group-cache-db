@@ -227,7 +227,6 @@ def check_existence_file(institution: Institution) -> bool:
 
     Arguments:
         institution (Institution): Institution object.
-        ordinal (str | None): Ordinal representation of the institution index.
 
     Returns:
         bool: True if both files exist, False otherwise.
