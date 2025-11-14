@@ -73,6 +73,7 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
                     "for institution: %(fqdn)s",
                     {"count": config.REQUEST_RETRIES, "fqdn": institution.fqdn},
                 )
+                traceback.print_exc()
                 exceptions.append(UpdateError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
@@ -156,14 +157,12 @@ def fetch_and_cache():
                 "Failed to cache groups to Redis for institution: %s",
                 institution.fqdn,
             )
-            traceback.print_exc()
             raise
         except redis.RedisError:
             logger.warning(
                 "Failed to cache groups to Redis for institution: %s",
                 institution.fqdn,
             )
-            traceback.print_exc()
             raise
 
     return _retrieve_fetch_and_cache
