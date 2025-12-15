@@ -1,0 +1,69 @@
+# Configuration for weko-group-cache-db command.
+
+# === Environment flag for development. ===
+# development = false
+
+# === Logging level. ===
+#   Possible values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+# log_level = "INFO"
+
+# === Prefix for SP connector ID. ===
+# sp_connector_id_prefix = "jc_"
+
+# === Cache key suffix of group information in Redis. ===
+# cache_key_suffix = "_gakunin_groups"
+
+# === Cache time-to-live of group information in Redis. ===
+#   If it specified less than 0, it will be considered as no expiration.
+# cache_ttl = 86400
+
+# === Map groups API endpoint. ===
+map_groups_api_endpoint = "https://sample.gakunin.jp/api/groups/"
+
+# === Request timeout (in seconds) when connecting to mAP API. ===
+# request_timeout = 20
+
+# === Request interval (in seconds) between mAP API requests. ===
+# request_interval = 3
+
+
+# !*** Request retries backoff interval settings. ***!
+#    interval(in seconds) = min(factor * (base ** request_count), max)
+
+# === Request retries when failed to fetch groups from mAP API. ===
+# request_retries = 3
+
+# === Base time (in seconds) for exponential backoff during request retries. ===
+# request_retry_base = 4
+
+# === Factor (in seconds) for exponential backoff during request retries. ===
+# request_retry_factor = 5
+
+# === Maximum time (in seconds) for exponential backoff during request retries. ===
+# request_retry_max = 90
+
+# === Redis type to use. `redis` or `sentinel` is allowed. ===
+# redis_type = "redis"
+
+# === Redis service host name. ===
+# redis_host = "localhost"
+
+# === Redis service port number. ===
+# redis_port = 6379
+
+# === Redis DB index to use for caching group information. ===
+# redis_db_index = 4
+
+# === Server name of the Redis sentinel master. ===
+# redis_sentinel_master = "redis-master"
+
+# === A list of Redis sentinel configurations. ===
+#   `host` and `port` can be specified repeatedly.
+#   Write a `sentinels` table for each Redis service.
+# [[sentinels]]
+# host = "sentinel-1"
+# port = 26379
+
+# [[sentinels]]
+# host = "sentinel-2"
+# port = 26380

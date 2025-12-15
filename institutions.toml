@@ -1,0 +1,15 @@
+# Institutions list to fetch and cache group information.
+
+# === Each institution configuration. ===
+#   Write a `institutions` table for each institution.
+#   - name: Institution name (optional)
+#   - fqdn: Fully Qualified Domain Name of the institution
+#   - spid: Service Provider connector ID of the institution
+#   - cert: Path to the SSL certificate file for the institution
+#   - key: Path to the SSL key file for the institution
+# [[institutions]]
+# name = "Sample University"
+# fqdn = "sample.rcos.nii.ac.jp"
+# spid = "jc_sample_rcos_nii_ac_jp"
+# cert = "certs/sample.crt"
+# key = "certs/sample.key"
