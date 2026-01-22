@@ -46,7 +46,12 @@ addopts = [
 
 [tool.coverage.run]
 source = ["weko_group_cache_db"]
-omit = ["*/__init__.py", "*/tests/*"]
+
+[tool.coverage.report]
+omit = ["__init__.py", "tests/*"]
+exclude_also = [
+  "if t.TYPE_CHECKING:",
+]
 
 [tool.ruff.lint]
 # refer to https://docs.astral.sh/ruff/settings/#lint
