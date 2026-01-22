@@ -21,7 +21,7 @@ from pydantic_settings import (
 from werkzeug.local import LocalProxy
 
 if t.TYPE_CHECKING:
-    from pydantic.fields import FieldInfo  # pragma: no cover
+    from pydantic.fields import FieldInfo
 
 
 class Settings(BaseSettings):

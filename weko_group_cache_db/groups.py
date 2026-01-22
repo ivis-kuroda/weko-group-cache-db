@@ -24,7 +24,7 @@ from .logger import console, logger
 from .redis import connection
 
 if t.TYPE_CHECKING:
-    from redis import Redis  # pragma: no cover
+    from redis import Redis
 
 
 def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
