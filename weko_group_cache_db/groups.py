@@ -22,8 +22,10 @@ from .exc import UpdateError
 from .loader import Institution, InstitutionSource, load_institutions
 from .logger import console, logger
 from .redis import connection
+from .signals import update_count_signal, update_result_signal
 
 if t.TYPE_CHECKING:
+    from backoff.types import Details
     from redis import Redis
 
 
@@ -77,6 +79,12 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
                 exceptions.append(UpdateError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
+                count_data = {
+                    "total": len(institutions),
+                    "done": index + 1,
+                    "current": institution.fqdn,
+                }
+                update_count_signal.send(fetch_all, **count_data)
 
             if index != total - 1:
                 time.sleep(config.REQUEST_INTERVAL)
@@ -137,6 +145,33 @@ def fetch_and_cache():
 
     """
 
+    def _update_retry_count(details: Details) -> None:
+        """Update the retry count based on backoff details.
+
+        Arguments:
+            details (Details): Details from backoff.
+
+        """
+        nonlocal retry_count
+        retry_count = details.get("tries", 0)
+
+    def _set_update_result_signal(fqdn: str, code: str = "") -> None:
+        """Send update result signal.
+
+        Arguments:
+            fqdn (str): FQDN of the institution.
+            code (str): Result code. Default is empty string.
+
+        """
+        nonlocal retry_count
+        signal_data = {
+            "task_name": f"{fqdn}_{retry_count!s}",
+            "status": "success" if not code else "failed",
+            "code": code,
+            "updated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        update_result_signal.send(fetch_and_cache, **signal_data)  # pyright: ignore[reportArgumentType]
+
     @backoff.on_exception(
         lambda: backoff.expo(
             base=config.REQUEST_RETRY_BASE,
@@ -146,25 +181,30 @@ def fetch_and_cache():
         (requests.RequestException, redis.RedisError),
         max_tries=config.REQUEST_RETRIES + 1,
         jitter=backoff.full_jitter,
+        on_backoff=_update_retry_count,
     )
     def _retrieve_fetch_and_cache(institution: Institution, store: Redis) -> int:
         try:
             group_ids = fetch_map_groups(institution)
             set_groups_to_redis(institution.fqdn, group_ids, store=store)
+            _set_update_result_signal(institution.fqdn)
             return len(group_ids)
         except requests.RequestException:
             logger.warning(
                 "Failed to fetch groups from mAP API for institution: %s",
                 institution.fqdn,
             )
+            _set_update_result_signal(institution.fqdn, code="timeout")
             raise
         except redis.RedisError:
             logger.warning(
                 "Failed to cache groups to Redis for institution: %s",
                 institution.fqdn,
             )
+            _set_update_result_signal(institution.fqdn, code="redis_error")
             raise
 
+    retry_count = 0
     return _retrieve_fetch_and_cache
 
 

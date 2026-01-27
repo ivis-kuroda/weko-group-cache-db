@@ -9,6 +9,7 @@ import typing as t
 
 from contextvars import ContextVar
 from pathlib import Path
+from typing import overload
 
 import rich_click as click
 
@@ -193,9 +194,20 @@ _no_config_msg = "Config has not been initialized."
 _current_config: ContextVar[Settings] = ContextVar("current_config")
 
 
-def setup_config(toml_path: str) -> None:
+@overload
+def setup_config(config: dict[str, t.Any]) -> None: ...
+
+
+@overload
+def setup_config(config: str) -> None: ...
+
+
+def setup_config(config: dict[str, t.Any] | str) -> None:
     """Initialize the global config instance."""
-    _current_config.set(Settings(toml_path=toml_path))  # pyright: ignore[reportCallIssue]
+    if isinstance(config, dict):
+        _current_config.set(Settings(**config))  # pyright: ignore[reportCallIssue]
+    else:
+        _current_config.set(Settings(toml_path=config))  # pyright: ignore[reportCallIssue]
 
 
 config = t.cast(Settings, LocalProxy(_current_config, unbound_message=_no_config_msg))
