@@ -23,7 +23,7 @@ def connection() -> Redis:
 
     """
     try:
-        if config.REDIS_TYPE == "redis":
+        if config.REDIS_TYPE == "RedisCache":
             store = _redis_connection()
             store.ping()
             logger.info("Successfully connected to Redis.")

@@ -227,7 +227,7 @@ $ wgcd one --help
 | REQUEST_RETRY_BASE      | 数値   | 4               | グループ情報取得・キャッシュDBへの登録処理のリトライ時の指数バックオフの基準時間（秒）   |
 | REQUEST_RETRY_FACTOR    | 数値   | 5               | グループ情報取得・キャッシュDBへの登録処理のリトライ時の指数バックオフの係数（秒）       |
 | REQUEST_RETRY_MAX       | 数値   | 90              | グループ情報取得・キャッシュDBへの登録処理のリトライ時の指数バックオフの最大時間（秒）   |
-| REDIS_TYPE              | 文字列 | redis           | 使用するRedisの種類<br>"redis", "sentinel"のうちから指定                                 |
+| REDIS_TYPE              | 文字列 | redis           | 使用するRedisの種類<br>"RedisCache", "RedisSentinelCache"のうちから指定                  |
 | REDIS_HOST              | 文字列 | localhost       | Redisのホスト名                                                                          |
 | REDIS_PORT              | 数値   | 6379            | Redisのポート番号                                                                        |
 | REDIS_DB_INDEX          | 数値   | 4               | グループ情報を格納するRedisのDBインデックス                                              |
