@@ -165,8 +165,10 @@ def fetch_and_cache():
         nonlocal retries
         try:
             group_ids = fetch_map_groups(institution)
-            set_groups_to_redis(institution.fqdn, group_ids, store=store)
-            _send_executed_signal(institution, "success", retries=retries)
+            updated_at = set_groups_to_redis(institution.fqdn, group_ids, store=store)
+            _send_executed_signal(
+                institution, "success", retries=retries, updated_at=updated_at
+            )
             return len(group_ids)
         except requests.RequestException as ex:
             logger.warning(
@@ -214,7 +216,9 @@ def fetch_map_groups(institution: Institution) -> list[str]:
     return group_ids
 
 
-def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None = None):
+def set_groups_to_redis(
+    fqdn: str, group_ids: list[str], *, store: Redis | None = None
+) -> datetime:
     """Set groups to redis.
 
     Arguments:
@@ -223,9 +227,13 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
         store(Redis | None):
             Redis store object. If None, a new connection will be established.
 
+    Returns:
+        datetime: The timestamp when the groups were cached.
+
     """
     redis_key = cache_key(fqdn)
-    updated_at = datetime.now(UTC).isoformat(timespec="seconds")
+    now = datetime.now(UTC)
+    updated_at = now.isoformat(timespec="seconds")
 
     if store is None:
         store = connection()
@@ -236,6 +244,8 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
     store.persist(redis_key)
     if config.CACHE_TTL >= 0:
         store.expire(redis_key, config.CACHE_TTL)
+
+    return now
 
 
 def cache_key(fqdn: str) -> str:
@@ -264,7 +274,8 @@ def _send_progress_signal(institutions: list[Institution], index: int) -> None:
 def _send_executed_signal(
     institution: Institution,
     status: t.Literal["success", "failed"],
-    retries: int,
+    updated_at: datetime | None = None,
+    retries: int = 0,
     error: Exception | None = None,
 ) -> None:
     data = ExecutedData(
@@ -273,7 +284,7 @@ def _send_executed_signal(
         retries=retries,
         error_type=type(error).__name__ if error else None,
         error_message=str(error) if error else None,
-        updated_at=datetime.now(UTC),
+        updated_at=updated_at or datetime.now(UTC),
     )
 
     executed_signal.send(fetch_all, data=data)
