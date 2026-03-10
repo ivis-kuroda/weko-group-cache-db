@@ -22,7 +22,7 @@ from .exc import UpdateError
 from .loader import Institution, InstitutionSource, load_institutions
 from .logger import console, logger
 from .redis import connection
-from .signals import update_count_signal, update_result_signal
+from .signals import ExecutedData, ProgressData, executed_signal, progress_signal
 
 if t.TYPE_CHECKING:
     from backoff.types import Details
@@ -79,12 +79,7 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
                 exceptions.append(UpdateError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
-                count_data = {
-                    "total": len(institutions),
-                    "done": index + 1,
-                    "current": institution.fqdn,
-                }
-                update_count_signal.send(fetch_all, **count_data)
+                _send_progress_signal(institutions, index)
 
             if index != total - 1:
                 time.sleep(config.REQUEST_INTERVAL)
@@ -145,32 +140,36 @@ def fetch_and_cache():
 
     """
 
-    def _update_retry_count(details: Details) -> None:
+    def _count(details: Details) -> None:
         """Update the retry count based on backoff details.
 
         Arguments:
             details (Details): Details from backoff.
 
         """
-        nonlocal retry_count
-        retry_count = details.get("tries", 0)
+        nonlocal retries
+        retries = details.get("tries", 0)
 
-    def _set_update_result_signal(fqdn: str, code: str = "") -> None:
+    def _executed_signal(
+        fqdn: str, status: str, error: Exception | None = None
+    ) -> None:
         """Send update result signal.
 
         Arguments:
             fqdn (str): FQDN of the institution.
-            code (str): Result code. Default is empty string.
+            status (str): Status of the fetch and cache operation.
+            error (Exception): Error object. Default is None.
 
         """
-        nonlocal retry_count
-        signal_data = {
-            "task_name": f"{fqdn}_{retry_count!s}",
-            "status": "success" if not code else "failed",
-            "code": code,
-            "updated": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        nonlocal retries
+        data = {
+            "fqdn": fqdn,
+            "retries": retries,
+            "status": status,
+            "error": error,
+            "updated": datetime.now(UTC),
         }
-        update_result_signal.send(fetch_and_cache, **signal_data)  # pyright: ignore[reportArgumentType]
+        executed_signal.send(fetch_and_cache, **data)
 
     @backoff.on_exception(
         lambda: backoff.expo(
@@ -181,30 +180,31 @@ def fetch_and_cache():
         (requests.RequestException, redis.RedisError),
         max_tries=config.REQUEST_RETRIES + 1,
         jitter=backoff.full_jitter,
-        on_backoff=_update_retry_count,
+        on_backoff=_count,
     )
     def _retrieve_fetch_and_cache(institution: Institution, store: Redis) -> int:
+        nonlocal retries
         try:
             group_ids = fetch_map_groups(institution)
             set_groups_to_redis(institution.fqdn, group_ids, store=store)
-            _set_update_result_signal(institution.fqdn)
+            _send_executed_signal(institution, "success", retries=retries)
             return len(group_ids)
-        except requests.RequestException:
+        except requests.RequestException as ex:
             logger.warning(
                 "Failed to fetch groups from mAP API for institution: %s",
                 institution.fqdn,
             )
-            _set_update_result_signal(institution.fqdn, code="timeout")
+            _send_executed_signal(institution, "failed", retries=retries, error=ex)
             raise
-        except redis.RedisError:
+        except redis.RedisError as ex:
             logger.warning(
                 "Failed to cache groups to Redis for institution: %s",
                 institution.fqdn,
             )
-            _set_update_result_signal(institution.fqdn, code="redis_error")
+            _send_executed_signal(institution, "failed", retries=retries, error=ex)
             raise
 
-    retry_count = 0
+    retries = 0
     return _retrieve_fetch_and_cache
 
 
@@ -258,3 +258,30 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
     store.persist(redis_key)
     if config.CACHE_TTL >= 0:
         store.expire(redis_key, config.CACHE_TTL)
+
+
+def _send_progress_signal(institutions: list[Institution], index: int) -> None:
+    total = len(institutions)
+    done = index + 1
+    current = institutions[index].fqdn if index < total else "N/A"
+    data = ProgressData(total=total, done=done, current=current)
+
+    progress_signal.send(fetch_all, data=data)
+
+
+def _send_executed_signal(
+    institution: Institution,
+    status: t.Literal["success", "failed"],
+    retries: int,
+    error: Exception | None = None,
+) -> None:
+    data = ExecutedData(
+        fqdn=institution.fqdn,
+        status=status,
+        retries=retries,
+        error_type=type(error).__name__ if error else None,
+        error_message=str(error) if error else None,
+        updated_at=datetime.now(UTC),
+    )
+
+    executed_signal.send(fetch_all, data=data)
