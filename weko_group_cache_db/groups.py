@@ -150,27 +150,6 @@ def fetch_and_cache():
         nonlocal retries
         retries = details.get("tries", 0)
 
-    def _executed_signal(
-        fqdn: str, status: str, error: Exception | None = None
-    ) -> None:
-        """Send update result signal.
-
-        Arguments:
-            fqdn (str): FQDN of the institution.
-            status (str): Status of the fetch and cache operation.
-            error (Exception): Error object. Default is None.
-
-        """
-        nonlocal retries
-        data = {
-            "fqdn": fqdn,
-            "retries": retries,
-            "status": status,
-            "error": error,
-            "updated": datetime.now(UTC),
-        }
-        executed_signal.send(fetch_and_cache, **data)
-
     @backoff.on_exception(
         lambda: backoff.expo(
             base=config.REQUEST_RETRY_BASE,
@@ -245,8 +224,7 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
             Redis store object. If None, a new connection will be established.
 
     """
-    transformed_fqdn = fqdn.replace(".", "_").replace("-", "_")
-    redis_key = transformed_fqdn + config.CACHE_KEY_SUFFIX
+    redis_key = cache_key(fqdn)
     updated_at = datetime.now(UTC).isoformat(timespec="seconds")
 
     if store is None:
@@ -258,6 +236,20 @@ def set_groups_to_redis(fqdn: str, group_ids: list[str], *, store: Redis | None 
     store.persist(redis_key)
     if config.CACHE_TTL >= 0:
         store.expire(redis_key, config.CACHE_TTL)
+
+
+def cache_key(fqdn: str) -> str:
+    """Generate the Redis key for the given FQDN.
+
+    Arguments:
+        fqdn (str): FQDN of the institution.
+
+    Returns:
+        str: Redis key for the institution's groups.
+
+    """
+    transformed_fqdn = fqdn.replace(".", "_").replace("-", "_")
+    return transformed_fqdn + config.CACHE_KEY_SUFFIX
 
 
 def _send_progress_signal(institutions: list[Institution], index: int) -> None:
