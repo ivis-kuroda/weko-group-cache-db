@@ -23,6 +23,9 @@ executed_signal = namespace.signal("executed")
 class ProgressData(BaseModel):
     """Data model for progress signal."""
 
+    status: t.Literal["started", "in_progress", "completed"]
+    """Status of the fetch and cache operation."""
+
     total: int
     """Total number of institutions to process."""
 

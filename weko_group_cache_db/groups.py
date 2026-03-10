@@ -63,6 +63,8 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
         )
 
         for index, institution in enumerate(institutions):
+            _send_progress_signal(institutions, index)
+
             try:
                 group_count = fetch_and_cache()(institution, store)
                 logger.info(
@@ -79,10 +81,11 @@ def fetch_all(**kwargs: t.Unpack[InstitutionSource]):
                 exceptions.append(UpdateError(institution.fqdn, origin=ex))
             finally:
                 progress.update(task, advance=1)
-                _send_progress_signal(institutions, index)
 
             if index != total - 1:
                 time.sleep(config.REQUEST_INTERVAL)
+
+    _send_progress_signal(institutions, total)
 
     if exceptions:
         error_message = "Failed to update information from %d institution(s)."
@@ -264,11 +267,19 @@ def cache_key(fqdn: str) -> str:
 
 def _send_progress_signal(institutions: list[Institution], index: int) -> None:
     total = len(institutions)
-    done = index + 1
+    status = "started"
+    if index > 0:
+        status = "in_progress"
+    elif index == total:
+        status = "completed"
     current = institutions[index].fqdn if index < total else "N/A"
-    data = ProgressData(total=total, done=done, current=current)
 
-    progress_signal.send(fetch_all, data=data)
+    data = ProgressData(status=status, total=total, done=index, current=current)
+
+    try:
+        progress_signal.send(fetch_all, data=data)
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
 
 
 def _send_executed_signal(
@@ -287,4 +298,7 @@ def _send_executed_signal(
         updated_at=updated_at or datetime.now(UTC),
     )
 
-    executed_signal.send(fetch_all, data=data)
+    try:
+        executed_signal.send(fetch_all, data=data)
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
